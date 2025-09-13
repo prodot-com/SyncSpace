@@ -2,6 +2,8 @@ import Home from './Components/Home.jsx'
 import React from 'react'
 import { BrowserRouter, Routes,Route } from 'react-router-dom'
 import Dashboard from './Components/Dashboard/Dashboard.jsx'
+import Workspace from './Components/Workspace.jsx'
+
 
 const App = () => {
   return (
@@ -10,6 +12,7 @@ const App = () => {
     <Routes>
         <Route path='/' element={<Home/>}/>
         <Route path='/Dashboard/:id' element={<Dashboard/>}/>
+        <Route path='/Workspace/:id' element={<Workspace/>} />
     </Routes>
     </BrowserRouter>
 
