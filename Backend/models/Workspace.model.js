@@ -1,9 +1,14 @@
 import mongoose from "mongoose";
 
-const workspaceSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  team: { type: mongoose.Schema.Types.ObjectId, ref: "Team", required: true },
-  tasks: [{ type: mongoose.Schema.Types.ObjectId, ref: "Task" }]
-}, { timestamps: true });
+const workspaceSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    description: { type: String },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  },
+  { timestamps: true }
+);
 
-export const Workspace = mongoose.model("Workspace", workspaceSchema);
+
+export const Workspace = mongoose.models.Workspace || mongoose.model("Workspace", workspaceSchema);
