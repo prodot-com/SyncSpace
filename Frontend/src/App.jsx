@@ -1,6 +1,7 @@
 import Home from './Components/Home.jsx'
 import React from 'react'
 import { BrowserRouter, Routes,Route } from 'react-router-dom'
+import Dashboard from './Components/Dashboard/Dashboard.jsx'
 
 const App = () => {
   return (
@@ -8,7 +9,7 @@ const App = () => {
     <BrowserRouter>
     <Routes>
         <Route path='/' element={<Home/>}/>
-        <Route/>
+        <Route path='/Dashboard/:id' element={<Dashboard/>}/>
     </Routes>
     </BrowserRouter>
 

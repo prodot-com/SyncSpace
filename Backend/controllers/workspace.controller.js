@@ -23,6 +23,7 @@ const createWorkspace = async (req, res) => {
 // ✅ Get all Workspaces for logged-in user
 const getWorkspaces = async (req, res) => {
   try {
+    console.log("User in request: ", req.user)
     const workspaces = await Workspace.find({ members: req.user._id })
       .populate("members", "name email")
       .populate("createdBy", "name email");
