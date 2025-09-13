@@ -37,10 +37,32 @@ io.use((socket, next) => {
 io.on("connection", (socket) => {
   console.log(`User ${socket.user.id} connected`);
 
+  // ✅ Join Workspace Room
+  socket.on("joinWorkspace", (workspaceId) => {
+    socket.join(`workspace-${workspaceId}`);
+    console.log(`User ${socket.user.id} joined workspace-${workspaceId}`);
+  });
+
+  // ✅ Kanban Updates
+  socket.on("taskUpdated", (task) => {
+    io.to(`workspace-${task.workspace}`).emit("taskUpdated", task);
+  });
+
+  // ✅ Document Updates
+  socket.on("docUpdated", ({ docId, content }) => {
+    io.to(`doc-${docId}`).emit("docUpdated", { docId, content });
+  });
+
+  socket.on("joinDoc", (docId) => {
+    socket.join(`doc-${docId}`);
+    console.log(`User ${socket.user.id} joined doc-${docId}`);
+  });
+
   socket.on("disconnect", () => {
     console.log(`User ${socket.user.id} disconnected`);
   });
 });
+
 
 connect_db()
   .then(() => console.log())

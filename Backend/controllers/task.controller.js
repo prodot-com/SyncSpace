@@ -1,44 +1,54 @@
-import { Task } from "../Models/Task.model.js";
-import { Workspace } from "../Models/Workspace.model.js";
+import { Task } from "../models/Task.model.js";
 
-export const createTask = async (req, res) => {
+// ✅ Create Task
+const createTask = async (req, res) => {
   try {
-    const { title, description, workspaceId } = req.body;
-
-    const task = await Task.create({
-      title,
-      description,
-      workspace: workspaceId,
-    });
-
-    await Workspace.findByIdAndUpdate(workspaceId, { $push: { tasks: task._id } });
-
+    const { title, description, status, workspace, assignedTo, dueDate } = req.body;
+    const task = new Task({ title, description, status, workspace, assignedTo, dueDate });
+    await task.save();
     res.status(201).json(task);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-export const updateTaskStatus = async (req, res) => {
+// ✅ Get Tasks by Workspace
+const getTasks = async (req, res) => {
   try {
-    const { taskId } = req.params;
-    const { status } = req.body;
+    const tasks = await Task.find({ workspace: req.params.workspaceId })
+      .populate("assignedTo", "name email");
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
 
-    const task = await Task.findByIdAndUpdate(taskId, { status }, { new: true });
-
+// ✅ Update Task
+const updateTask = async (req, res) => {
+  try {
+    const task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!task) return res.status(404).json({ message: "Task not found" });
     res.json(task);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-export const getTasks = async (req, res) => {
+// ✅ Delete Task
+const deleteTask = async (req, res) => {
   try {
-    const { workspaceId } = req.params;
-    const tasks = await Task.find({ workspace: workspaceId });
-
-    res.json(tasks);
+    const task = await Task.findByIdAndDelete(req.params.id);
+    if (!task) return res.status(404).json({ message: "Task not found" });
+    res.json({ message: "Task deleted" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
+
+
+export {
+  createTask,
+  updateTask,
+  deleteTask,
+  getTasks
+}
