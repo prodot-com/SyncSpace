@@ -3,6 +3,7 @@ import {useNavigate } from "react-router-dom";
 import { LayoutGrid, FilePenLine, MessageSquare, Zap, X } from "lucide-react";
 import axios from "axios"
 import Image1 from "../assets/Image1.png"
+import { Backend_URL } from "../../utilities/constants.js";
 
 
 const SignUpForm = ({ signUpData, handleSignUpChange, handleSignUp, setModalContent, alert }) => (
