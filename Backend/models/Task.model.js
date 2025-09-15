@@ -6,7 +6,7 @@ const taskSchema = new mongoose.Schema(
     description: { type: String },
     status: {
       type: String,
-      enum: ["todo", "in-progress", "done"],
+      enum: ["To Do", "In Progress", "Completed"],
       default: "todo",
     },
     workspace: {
@@ -14,10 +14,11 @@ const taskSchema = new mongoose.Schema(
       ref: "Workspace",
       required: true,
     },
-    assignedTo: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     dueDate: { type: Date },
   },
   { timestamps: true }
 );
 
-export const Task = mongoose.models.Task || mongoose.model("Task", taskSchema);
+const Task = mongoose.model("Task", taskSchema);
+export { Task };

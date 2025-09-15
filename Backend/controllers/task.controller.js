@@ -45,10 +45,4 @@ const deleteTask = async (req, res) => {
   }
 };
 
-
-export {
-  createTask,
-  updateTask,
-  deleteTask,
-  getTasks
-}
+export { createTask, getTasks, updateTask, deleteTask };

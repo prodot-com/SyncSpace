@@ -23,7 +23,6 @@ const createWorkspace = async (req, res) => {
 // ✅ Get all Workspaces for logged-in user
 const getWorkspaces = async (req, res) => {
   try {
-    console.log("User in request: ", req.user)
     const workspaces = await Workspace.find({ members: req.user._id })
       .populate("members", "name email")
       .populate("createdBy", "name email");
@@ -41,9 +40,7 @@ const getWorkspaceById = async (req, res) => {
       .populate("members", "name email")
       .populate("createdBy", "name email");
 
-    if (!workspace) {
-      return res.status(404).json({ message: "Workspace not found" });
-    }
+    if (!workspace) return res.status(404).json({ message: "Workspace not found" });
 
     res.json(workspace);
   } catch (err) {
@@ -55,10 +52,7 @@ const getWorkspaceById = async (req, res) => {
 const updateWorkspace = async (req, res) => {
   try {
     const workspace = await Workspace.findById(req.params.id);
-
-    if (!workspace) {
-      return res.status(404).json({ message: "Workspace not found" });
-    }
+    if (!workspace) return res.status(404).json({ message: "Workspace not found" });
 
     if (workspace.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not authorized" });
@@ -80,10 +74,7 @@ const updateWorkspace = async (req, res) => {
 const deleteWorkspace = async (req, res) => {
   try {
     const workspace = await Workspace.findById(req.params.id);
-
-    if (!workspace) {
-      return res.status(404).json({ message: "Workspace not found" });
-    }
+    if (!workspace) return res.status(404).json({ message: "Workspace not found" });
 
     if (workspace.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not authorized" });
@@ -96,18 +87,24 @@ const deleteWorkspace = async (req, res) => {
   }
 };
 
-// ✅ Add Member to Workspace
-const addMember = async (req, res) => {
+// ✅ Invite Member by Email
+const inviteMember = async (req, res) => {
   try {
-    const workspace = await Workspace.findById(req.params.id);
-    const { userId } = req.body;
+    const { email } = req.body;
+    const { id } = req.params;
 
-    if (!workspace) {
-      return res.status(404).json({ message: "Workspace not found" });
+    const workspace = await Workspace.findById(id);
+    if (!workspace) return res.status(404).json({ message: "Workspace not found" });
+
+    if (workspace.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized to invite" });
     }
 
-    if (!workspace.members.includes(userId)) {
-      workspace.members.push(userId);
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (!workspace.members.includes(user._id)) {
+      workspace.members.push(user._id);
       await workspace.save();
     }
 
@@ -117,15 +114,13 @@ const addMember = async (req, res) => {
   }
 };
 
-// ✅ Remove Member from Workspace
+// ✅ Remove Member
 const removeMember = async (req, res) => {
   try {
     const { id, userId } = req.params;
     const workspace = await Workspace.findById(id);
 
-    if (!workspace) {
-      return res.status(404).json({ message: "Workspace not found" });
-    }
+    if (!workspace) return res.status(404).json({ message: "Workspace not found" });
 
     workspace.members = workspace.members.filter(
       (member) => member.toString() !== userId
@@ -138,13 +133,12 @@ const removeMember = async (req, res) => {
   }
 };
 
-
 export {
   createWorkspace,
-  getWorkspaceById,
   getWorkspaces,
+  getWorkspaceById,
   updateWorkspace,
   deleteWorkspace,
-  addMember,
-  removeMember
-}
+  inviteMember,
+  removeMember,
+};
