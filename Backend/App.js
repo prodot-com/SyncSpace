@@ -6,6 +6,7 @@ import teamRoutes from './routes/teams.route.js';
 import workspaceRoutes from './routes/workspace.routes.js';
 import taskRoutes from './routes/tasks.routes.js';
 import documentRoutes from './routes/document.routes.js'
+import chatRoutes from './routes/chat.routes.js'
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/tasks', taskRoutes);
-app.use('/api/documents', documentRoutes)
+app.use('/api/documents', documentRoutes);
+app.use('/api/chat', chatRoutes);
 
 export { app };

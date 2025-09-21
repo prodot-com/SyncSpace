@@ -43,6 +43,21 @@ io.on("connection", (socket) => {
     console.log(`User ${socket.user.id} joined workspace-${workspaceId}`);
   });
 
+  // ✅ Chat Messages
+  socket.on("sendMessage", ({ content, workspaceId }) => {
+    const message = {
+      content,
+      workspaceId,
+      sender: {
+        _id: socket.user.id,
+        name: socket.user.name || "Unknown User",
+      },
+      createdAt: new Date(),
+    };
+
+    io.to(`workspace-${workspaceId}`).emit("receiveMessage", message);
+  });
+
   // ✅ Kanban Updates
   socket.on("taskUpdated", (task) => {
     io.to(`workspace-${task.workspace}`).emit("taskUpdated", task);
@@ -62,6 +77,7 @@ io.on("connection", (socket) => {
     console.log(`User ${socket.user.id} disconnected`);
   });
 });
+
 
 
 connect_db()

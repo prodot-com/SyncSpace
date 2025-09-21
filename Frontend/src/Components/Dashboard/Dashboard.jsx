@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   Plus, X, Briefcase, LogOut, Loader2, Search, Bell, MessageSquare,
   LayoutGrid, Users, CheckSquare, Settings, ChevronDown, Clock, ShieldCheck,
@@ -67,7 +67,7 @@ const EditProfileModal = ({ closeModal, user, handleUpdateProfile }) => {
         <h2 className="text-2xl font-bold mb-4">Edit Profile</h2>
         <form className="space-y-3" onSubmit={handleSubmit}>
           {["name","email","skills","portfolio","rate"].map((field) => (
-            <input key={field} type="text" name={field} value={formData[field]} onChange={handleChange} placeholder={field} className="w-full px-4 py-2 bg-slate-700 rounded-lg"/>
+            <input key={field} type="text" name={field} value={formData[field]} onChange={handleChange} placeholder={field.charAt(0).toUpperCase() + field.slice(1)} className="w-full px-4 py-2 bg-slate-700 rounded-lg"/>
           ))}
           <button type="submit" className="w-full py-2 bg-teal-600 rounded-lg hover:bg-teal-500">Update</button>
         </form>
@@ -149,41 +149,10 @@ const DashboardPage = () => {
   }, [workspaces, token]);
 
   // --- Handlers ---
-  const handleCreateWorkspace = async (newWorkspace) => {
-    try {
-      const res = await axios.post(`${API_BASE_URL}/workspaces`, newWorkspace, { headers: { Authorization: `Bearer ${token}` } });
-      setWorkspaces(prev => [...prev, res.data]);
-      showAlert("Workspace created successfully!");
-      closeModal();
-    } catch { showAlert("Error creating workspace."); }
-  };
-
-  const handleCreateTeam = async (newTeam) => {
-    try {
-      const res = await axios.post(`${API_BASE_URL}/teams`, newTeam, { headers: { Authorization: `Bearer ${token}` } });
-      setTeams(prev => [...prev, res.data.team]);
-      showAlert("Team created successfully!");
-      closeModal();
-    } catch { showAlert("Error creating team."); }
-  };
-
-  const handleUpdateProfile = async (formData) => {
-    try {
-      const res = await axios.put(`${API_BASE_URL}/users/me`, formData, { headers: { Authorization: `Bearer ${token}` } });
-      setUser(res.data);
-      showAlert("Profile updated!");
-      closeModal();
-    } catch { showAlert("Error updating profile."); }
-  };
-
-  const handleChangePassword = async (form) => {
-    try {
-      await axios.put(`${API_BASE_URL}/auth/change-password`, form, { headers: { Authorization: `Bearer ${token}` } });
-      showAlert("Password updated!");
-      closeModal();
-    } catch { showAlert("Error updating password."); }
-  };
-
+  const handleCreateWorkspace = async (newWorkspace) => { try { const res = await axios.post(`${API_BASE_URL}/workspaces`, newWorkspace, { headers: { Authorization: `Bearer ${token}` } }); setWorkspaces(prev => [...prev, res.data]); showAlert("Workspace created successfully!"); closeModal(); } catch { showAlert("Error creating workspace."); }};
+  const handleCreateTeam = async (newTeam) => { try { const res = await axios.post(`${API_BASE_URL}/teams`, newTeam, { headers: { Authorization: `Bearer ${token}` } }); setTeams(prev => [...prev, res.data.team]); showAlert("Team created successfully!"); closeModal(); } catch { showAlert("Error creating team."); }};
+  const handleUpdateProfile = async (formData) => { try { const res = await axios.put(`${API_BASE_URL}/users/me`, formData, { headers: { Authorization: `Bearer ${token}` } }); setUser(res.data); showAlert("Profile updated!"); closeModal(); } catch { showAlert("Error updating profile."); }};
+  const handleChangePassword = async (form) => { try { await axios.put(`${API_BASE_URL}/users/me/password`, form, { headers: { Authorization: `Bearer ${token}` } }); showAlert("Password updated!"); closeModal(); } catch { showAlert("Error updating password."); }};
   const handleLogout = () => { localStorage.removeItem("token"); navigate("/"); };
   const showAlert = (message) => { setAlert(message); setTimeout(() => setAlert(null), 3000); };
   const openModal = (type) => setModal({ type, isOpen: true });
@@ -211,10 +180,9 @@ const DashboardPage = () => {
       <aside className="w-64 bg-slate-800 p-6 hidden md:flex flex-col">
         <h1 className="text-2xl font-bold mb-10">SyncSpace</h1>
         <nav className="flex flex-col space-y-2">
-          <button className="flex items-center gap-3 p-3 rounded-lg bg-teal-500/20 font-semibold"><LayoutGrid size={20}/> Workspaces</button>
-          <button className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700"><Users size={20}/> Teams</button>
-          <button className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700"><CheckSquare size={20}/> Tasks</button>
-          <button className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700"><MessageSquare size={20}/> Messages</button>
+          <Link to={user ? `/Dashboard/${user._id}` : '#'} className="flex items-center gap-3 p-3 rounded-lg bg-teal-500/20 font-semibold"><LayoutGrid size={20}/> Dashboard</Link>
+          <Link to={user ? `/Tasks/${user._id}` : '#'} className="cursor-pointer flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700 text-slate-300"><CheckSquare size={20}/> My Tasks</Link>
+          <button className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700 text-slate-300"><MessageSquare size={20}/> Messages</button>
         </nav>
       </aside>
 
@@ -270,42 +238,19 @@ const DashboardPage = () => {
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-2xl font-bold">Teams</h2>
-                  <button onClick={() => openModal("team")} className="flex items-center gap-2 px-4 py-2 bg-teal-600 rounded-lg font-semibold hover:bg-teal-500"><Plus size={18}/> New</button>
+                  <button onClick={() => openModal("team")} className="flex items-center gap-2 px-4 py-2 bg-slate-700 rounded-lg font-semibold hover:bg-slate-600"><Plus size={18}/> New</button>
                 </div>
                 {loading.teams ? <Loader2 className="animate-spin text-teal-500"/> :
                   teams.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-slate-800 p-3 rounded-xl">
                       {teams.map(team => (
-                        <div key={team._id} className="bg-slate-800 p-5 rounded-xl shadow-lg hover:shadow-teal-500/20 cursor-pointer">
-                          <div className="flex items-center gap-4 mb-3"><Users className="text-teal-500" size={24}/><h3 className="text-lg font-bold">{team.name}</h3></div>
-                          <p className="text-slate-400 text-sm">{team.description || "No description."}</p>
+                        <div key={team._id} className="flex justify-between p-3 border-b border-slate-700 last:border-none">
+                            <h3 className="font-bold">{team.name}</h3>
+                            <span className="text-slate-400 text-sm">{team.members.length} members</span>
                         </div>
                       ))}
                     </div>
                   ) : <div className="text-center py-6 bg-slate-800 rounded-lg">No teams yet</div>
-                }
-              </div>
-
-              {/* Tasks */}
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-bold">Tasks</h2>
-                  <button onClick={() => navigate("/tasks")} className="px-4 py-2 bg-teal-600 rounded-lg font-semibold hover:bg-teal-500">Manage</button>
-                </div>
-                {loading.tasks ? <Loader2 className="animate-spin text-teal-500"/> :
-                  tasks.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {tasks.slice(0, 4).map(task => (
-                        <div key={task._id} className="bg-slate-800 p-5 rounded-xl shadow-lg hover:shadow-teal-500/20">
-                          <div className="flex justify-between items-center mb-2">
-                            <h3 className="text-lg font-bold">{task.title}</h3>
-                            <span className={`px-2 py-1 text-xs rounded-full ${task.status === "Completed" ? "bg-green-600" : task.status === "In Progress" ? "bg-yellow-600" : "bg-slate-600"}`}>{task.status}</span>
-                          </div>
-                          <p className="text-slate-400 text-sm">{task.description || "No description."}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : <div className="text-center py-6 bg-slate-800 rounded-lg">No tasks yet</div>
                 }
               </div>
             </div>
@@ -318,7 +263,7 @@ const DashboardPage = () => {
                   <div className="w-14 h-14 rounded-full bg-teal-500 flex items-center justify-center text-2xl font-bold">{user?.name?.charAt(0)}</div>
                   <div><h3 className="text-lg font-bold">{user?.name}</h3><p className="text-slate-400 text-sm">{user?.email}</p></div>
                 </div>
-                <button onClick={() => openModal("editProfile")} className="w-full py-2 mt-3 bg-slate-700 rounded-lg hover:bg-slate-600 flex items-center justify-center gap-2"><Edit3 size={16}/> Edit Profile</button>
+                <div className="border-t border-slate-700 pt-4 flex items-center gap-3"><ShieldCheck className="text-teal-400"/> Role: <span className="font-bold">{user?.role}</span></div>
               </div>
 
               {/* Tasks Summary */}
@@ -336,7 +281,7 @@ const DashboardPage = () => {
                 <h2 className="text-xl font-bold mb-4">Recent Activity</h2>
                 <ul className="space-y-3">
                   <li className="flex items-center gap-3 text-sm text-slate-400"><Clock size={16} className="text-teal-500"/> Task "Landing Page" marked Completed</li>
-                  <li className="flex items-center gap-3 text-sm text-slate-400"><ShieldCheck size={16} className="text-teal-500"/> Workspace "Marketing" created</li>
+                  <li className="flex items-center gap-3 text-sm text-slate-400"><Plus size={16} className="text-teal-500"/> Workspace "Marketing" created</li>
                 </ul>
               </div>
             </div>
@@ -348,3 +293,4 @@ const DashboardPage = () => {
 };
 
 export default DashboardPage;
+
