@@ -7,94 +7,11 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
-// --- Create Workspace Modal ---
-const CreateWorkspaceModal = ({ closeModal, handleCreateWorkspace }) => {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!name.trim()) return alert("Workspace name is required.");
-    handleCreateWorkspace({ name, description });
-  };
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 z-[60] flex justify-center items-center p-4 font-sans">
-      <div className="bg-slate-800 rounded-2xl shadow-2xl shadow-black/50 p-8 w-full max-w-md relative animate-fade-in-up">
-        <button onClick={closeModal} className="absolute top-4 right-4 text-slate-400 hover:text-white transition"><X size={24} /></button>
-        <h2 className="text-3xl font-bold text-center text-white mb-2">Create New Workspace</h2>
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Workspace Name" className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg" required />
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg" />
-          <button type="submit" className="w-full py-3 mt-4 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-500 transition">Create Workspace</button>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// --- Create Team Modal ---
-const CreateTeamModal = ({ closeModal, handleCreateTeam }) => {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!name.trim()) return alert("Team name is required.");
-    handleCreateTeam({ name, description });
-  };
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 z-[60] flex justify-center items-center p-4 font-sans">
-      <div className="bg-slate-800 rounded-2xl shadow-2xl shadow-black/50 p-8 w-full max-w-md relative animate-fade-in-up">
-        <button onClick={closeModal} className="absolute top-4 right-4 text-slate-400 hover:text-white transition"><X size={24} /></button>
-        <h2 className="text-3xl font-bold text-center text-white mb-2">Create New Team</h2>
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Team Name" className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg" required />
-          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description (optional)" className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg" />
-          <button type="submit" className="w-full py-3 mt-4 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-500 transition">Create Team</button>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// --- Edit Profile Modal ---
-const EditProfileModal = ({ closeModal, user, handleUpdateProfile }) => {
-  const [formData, setFormData] = useState({ name: user.name, email: user.email, skills: user.skills || "", portfolio: user.portfolio || "", rate: user.rate || "" });
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-  const handleSubmit = (e) => { e.preventDefault(); handleUpdateProfile(formData); };
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 z-[70] flex justify-center items-center p-4 font-sans">
-      <div className="bg-slate-800 rounded-2xl shadow-2xl p-8 w-full max-w-md relative">
-        <button onClick={closeModal} className="absolute top-4 right-4 text-slate-400 hover:text-white transition"><X size={24}/></button>
-        <h2 className="text-2xl font-bold mb-4">Edit Profile</h2>
-        <form className="space-y-3" onSubmit={handleSubmit}>
-          {["name","email","skills","portfolio","rate"].map((field) => (
-            <input key={field} type="text" name={field} value={formData[field]} onChange={handleChange} placeholder={field.charAt(0).toUpperCase() + field.slice(1)} className="w-full px-4 py-2 bg-slate-700 rounded-lg"/>
-          ))}
-          <button type="submit" className="w-full py-2 bg-teal-600 rounded-lg hover:bg-teal-500">Update</button>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// --- Change Password Modal ---
-const ChangePasswordModal = ({ closeModal, handleChangePassword }) => {
-  const [form, setForm] = useState({ currentPassword: "", newPassword: "" });
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-  const handleSubmit = (e) => { e.preventDefault(); handleChangePassword(form); };
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 z-[70] flex justify-center items-center p-4 font-sans">
-      <div className="bg-slate-800 rounded-2xl shadow-2xl p-8 w-full max-w-md relative">
-        <button onClick={closeModal} className="absolute top-4 right-4 text-slate-400 hover:text-white transition"><X size={24}/></button>
-        <h2 className="text-2xl font-bold mb-4">Change Password</h2>
-        <form className="space-y-3" onSubmit={handleSubmit}>
-          <input type="password" name="currentPassword" value={form.currentPassword} onChange={handleChange} placeholder="Current Password" className="w-full px-4 py-2 bg-slate-700 rounded-lg"/>
-          <input type="password" name="newPassword" value={form.newPassword} onChange={handleChange} placeholder="New Password" className="w-full px-4 py-2 bg-slate-700 rounded-lg"/>
-          <button type="submit" className="w-full py-2 bg-teal-600 rounded-lg hover:bg-teal-500">Update Password</button>
-        </form>
-      </div>
-    </div>
-  );
-};
+// --- Modals (minimized for brevity) ---
+const CreateWorkspaceModal = ({ closeModal, handleCreateWorkspace }) => { const [name, setName] = useState(""); const [description, setDescription] = useState(""); const handleSubmit = (e) => { e.preventDefault(); if (!name.trim()) return alert("Workspace name is required."); handleCreateWorkspace({ name, description }); }; return ( <div className="fixed inset-0 bg-black bg-opacity-70 z-[60] flex justify-center items-center p-4 font-sans"><div className="bg-slate-800 rounded-2xl shadow-2xl shadow-black/50 p-8 w-full max-w-md relative animate-fade-in-up"><button onClick={closeModal} className="absolute top-4 right-4 text-slate-400 hover:text-white transition"><X size={24} /></button><h2 className="text-3xl font-bold text-center text-white mb-2">Create New Workspace</h2><form className="space-y-4" onSubmit={handleSubmit}><input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Workspace Name" className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg" required /><textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg" /><button type="submit" className="w-full py-3 mt-4 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-500 transition">Create Workspace</button></form></div></div>);};
+const CreateTeamModal = ({ closeModal, handleCreateTeam }) => { const [name, setName] = useState(""); const [description, setDescription] = useState(""); const handleSubmit = (e) => { e.preventDefault(); if (!name.trim()) return alert("Team name is required."); handleCreateTeam({ name, description }); }; return ( <div className="fixed inset-0 bg-black bg-opacity-70 z-[60] flex justify-center items-center p-4 font-sans"><div className="bg-slate-800 rounded-2xl shadow-2xl shadow-black/50 p-8 w-full max-w-md relative animate-fade-in-up"><button onClick={closeModal} className="absolute top-4 right-4 text-slate-400 hover:text-white transition"><X size={24} /></button><h2 className="text-3xl font-bold text-center text-white mb-2">Create New Team</h2><form className="space-y-4" onSubmit={handleSubmit}><input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Team Name" className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg" required /><textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description (optional)" className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg" /><button type="submit" className="w-full py-3 mt-4 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-500 transition">Create Team</button></form></div></div>);};
+const EditProfileModal = ({ closeModal, user, handleUpdateProfile }) => { const [formData, setFormData] = useState({ name: user.name, email: user.email, skills: user.skills || "", portfolio: user.portfolio || "", rate: user.rate || "" }); const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value }); const handleSubmit = (e) => { e.preventDefault(); handleUpdateProfile(formData); }; return ( <div className="fixed inset-0 bg-black bg-opacity-70 z-[70] flex justify-center items-center p-4 font-sans"><div className="bg-slate-800 rounded-2xl shadow-2xl p-8 w-full max-w-md relative"><button onClick={closeModal} className="absolute top-4 right-4 text-slate-400 hover:text-white transition"><X size={24}/></button><h2 className="text-2xl font-bold mb-4">Edit Profile</h2><form className="space-y-3" onSubmit={handleSubmit}>{["name","email","skills","portfolio","rate"].map((field) => ( <input key={field} type="text" name={field} value={formData[field]} onChange={handleChange} placeholder={field.charAt(0).toUpperCase() + field.slice(1)} className="w-full px-4 py-2 bg-slate-700 rounded-lg"/>))}<button type="submit" className="w-full py-2 bg-teal-600 rounded-lg hover:bg-teal-500">Update</button></form></div></div>);};
+const ChangePasswordModal = ({ closeModal, handleChangePassword }) => { const [form, setForm] = useState({ currentPassword: "", newPassword: "" }); const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value }); const handleSubmit = (e) => { e.preventDefault(); handleChangePassword(form); }; return ( <div className="fixed inset-0 bg-black bg-opacity-70 z-[70] flex justify-center items-center p-4 font-sans"><div className="bg-slate-800 rounded-2xl shadow-2xl p-8 w-full max-w-md relative"><button onClick={closeModal} className="absolute top-4 right-4 text-slate-400 hover:text-white transition"><X size={24}/></button><h2 className="text-2xl font-bold mb-4">Change Password</h2><form className="space-y-3" onSubmit={handleSubmit}><input type="password" name="currentPassword" value={form.currentPassword} onChange={handleChange} placeholder="Current Password" className="w-full px-4 py-2 bg-slate-700 rounded-lg"/><input type="password" name="newPassword" value={form.newPassword} onChange={handleChange} placeholder="New Password" className="w-full px-4 py-2 bg-slate-700 rounded-lg"/><button type="submit" className="w-full py-2 bg-teal-600 rounded-lg hover:bg-teal-500">Update Password</button></form></div></div>);};
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -110,7 +27,6 @@ const DashboardPage = () => {
   const token = localStorage.getItem("token");
   const API_BASE_URL = "http://localhost:9000/api";
 
-  // --- Fetch Data ---
   useEffect(() => {
     if (!token) { navigate("/"); return; }
     const fetchData = async (endpoint, setter, loadingKey) => {
@@ -143,12 +59,13 @@ const DashboardPage = () => {
         } catch { } finally {
           setLoading(prev => ({ ...prev, tasks: false }));
         }
+      } else {
+        setLoading(prev => ({...prev, tasks: false}));
       }
     };
     fetchAllTasks();
   }, [workspaces, token]);
 
-  // --- Handlers ---
   const handleCreateWorkspace = async (newWorkspace) => { try { const res = await axios.post(`${API_BASE_URL}/workspaces`, newWorkspace, { headers: { Authorization: `Bearer ${token}` } }); setWorkspaces(prev => [...prev, res.data]); showAlert("Workspace created successfully!"); closeModal(); } catch { showAlert("Error creating workspace."); }};
   const handleCreateTeam = async (newTeam) => { try { const res = await axios.post(`${API_BASE_URL}/teams`, newTeam, { headers: { Authorization: `Bearer ${token}` } }); setTeams(prev => [...prev, res.data.team]); showAlert("Team created successfully!"); closeModal(); } catch { showAlert("Error creating team."); }};
   const handleUpdateProfile = async (formData) => { try { const res = await axios.put(`${API_BASE_URL}/users/me`, formData, { headers: { Authorization: `Bearer ${token}` } }); setUser(res.data); showAlert("Profile updated!"); closeModal(); } catch { showAlert("Error updating profile."); }};
@@ -166,7 +83,7 @@ const DashboardPage = () => {
     }, { "To Do": 0, "In Progress": 0, "Completed": 0 });
   }, [tasks]);
 
-  if (loading.user) {
+  if (loading.user || !user) {
     return <div className="min-h-screen flex justify-center items-center bg-slate-900 text-white"><Loader2 size={40} className="animate-spin text-teal-500" /></div>;
   }
 
@@ -180,8 +97,8 @@ const DashboardPage = () => {
       <aside className="w-64 bg-slate-800 p-6 hidden md:flex flex-col">
         <h1 className="text-2xl font-bold mb-10">SyncSpace</h1>
         <nav className="flex flex-col space-y-2">
-          <Link to={user ? `/Dashboard/${user._id}` : '#'} className="flex items-center gap-3 p-3 rounded-lg bg-teal-500/20 font-semibold"><LayoutGrid size={20}/> Dashboard</Link>
-          <Link to={user ? `/Tasks/${user._id}` : '#'} className="cursor-pointer flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700 text-slate-300"><CheckSquare size={20}/> My Tasks</Link>
+          <Link to={`/Dashboard/${user._id}`} className="flex items-center gap-3 p-3 rounded-lg bg-teal-500/20 font-semibold"><LayoutGrid size={20}/> Dashboard</Link>
+          <Link to={`/Tasks/${user._id}`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700 text-slate-300"><CheckSquare size={20}/> My Tasks</Link>
           <button className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700 text-slate-300"><MessageSquare size={20}/> Messages</button>
         </nav>
       </aside>
