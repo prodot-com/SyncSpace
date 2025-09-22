@@ -99,6 +99,19 @@ io.on("connection", (socket) => {
     }
   });
 
+  // --- Document Upload/Delete Events ---
+socket.on("docUpdated", ({ doc, docId, deleted }) => {
+  if (doc && doc.workspace) {
+    // broadcast newly uploaded document
+    io.to(`workspace-${doc.workspace}`).emit("docUpdated", { doc });
+  } else if (deleted && docId) {
+    // broadcast deleted document
+    // You might also need workspaceId here if you want scoped emit
+    io.emit("docUpdated", { docId, deleted: true });
+  }
+});
+
+
   // --- Other Events ---
   socket.on("taskUpdated", (task) => {
     if (task.workspace) {
