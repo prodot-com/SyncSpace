@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import {
   DndContext,
@@ -20,13 +20,18 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { io } from "socket.io-client";
+import Quill from "quill";
+import "quill/dist/quill.snow.css";
 
 // --- Reusable UI Components & Modals ---
 
 const ModalShell = ({ children, close }) => (
     <div className="fixed inset-0 bg-black bg-opacity-70 z-[60] flex justify-center items-center p-4">
         <div className="bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-lg relative animate-fade-in-up">
-            <button onClick={close} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
+            <button
+                onClick={close}
+                className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+            >
                 <X size={24} />
             </button>
             {children}
@@ -72,7 +77,7 @@ const CreateTaskModal = ({ close, onCreate, workspaceId, members }) => {
                     </select>
                     <select value={assignedTo} onChange={e => setAssignedTo(e.target.value)} className="px-3 py-2 rounded bg-slate-700 border border-slate-600 appearance-none">
                         <option value="">Unassigned</option>
-                        {members.map(m => <option key={m._id} value={m._1d ?? m._id}>{m.name}</option>)}
+                        {members.map(m => <option key={m._id} value={m._id}>{m.name}</option>)}
                     </select>
                 </div>
                 <div className="flex justify-end gap-3 pt-4">
@@ -104,7 +109,7 @@ const EditTaskModal = ({ close, task, members, onUpdate, onDelete }) => {
                     value={title}
                     onChange={e => setTitle(e.target.value)}
                     placeholder="Task Title"
-                    className="w-full px-4 py-2 rounded bg-slate-700 border border-slate-600 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition"
+                    className="w-full px-4 py-2 rounded bg-slate-700 border border-slate-600"
                     required
                 />
                 <textarea
@@ -112,7 +117,7 @@ const EditTaskModal = ({ close, task, members, onUpdate, onDelete }) => {
                     onChange={e => setDescription(e.target.value)}
                     placeholder="Add a description..."
                     rows={4}
-                    className="w-full px-4 py-2 rounded bg-slate-700 border border-slate-600 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition"
+                    className="w-full px-4 py-2 rounded bg-slate-700 border border-slate-600"
                 />
                 <div className="grid grid-cols-2 gap-4">
                     <select value={status} onChange={e => setStatus(e.target.value)} className="px-3 py-2 rounded bg-slate-700 border border-slate-600 appearance-none">
@@ -126,7 +131,9 @@ const EditTaskModal = ({ close, task, members, onUpdate, onDelete }) => {
                     </select>
                 </div>
                 <div className="flex justify-between items-center pt-4">
-                    <button type="button" onClick={() => onDelete(task._id)} className="px-5 py-2 rounded font-semibold bg-red-600 hover:bg-red-500 transition text-white">Delete Task</button>
+                    <button type="button" onClick={() => onDelete(task._id)} className="px-5 py-2 rounded font-semibold bg-red-600 hover:bg-red-500 transition text-white">
+                        Delete Task
+                    </button>
                     <div className="flex gap-3">
                         <button type="button" onClick={close} className="px-5 py-2 rounded font-semibold bg-slate-600 hover:bg-slate-500 transition">Cancel</button>
                         <button type="submit" className="px-5 py-2 rounded font-semibold bg-teal-600 hover:bg-teal-500 transition">Save Changes</button>
@@ -182,7 +189,7 @@ const MembersModal = ({ close, members, onInvite, onRemove }) => {
                             <div className="font-semibold">{m.name}</div>
                             <div className="text-xs text-slate-400">{m.email}</div>
                         </div>
-                        <button onClick={() => onRemove(m._1d ?? m._id)} className="text-red-500 hover:text-red-400 p-1">
+                        <button onClick={() => onRemove(m._id)} className="text-red-500 hover:text-red-400 p-1">
                             <Trash2 size={16} />
                         </button>
                     </div>
@@ -229,6 +236,37 @@ const SettingsModal = ({ close, workspace, onUpdate }) => {
     );
 };
 
+const CreateDocumentModal = ({ close, onCreate }) => {
+    const [title, setTitle] = useState("");
+    const submit = (e) => {
+        e.preventDefault();
+        if (!title.trim()) return;
+        onCreate(title);
+    };
+
+    return (
+        <ModalShell close={close}>
+            <h2 className="text-2xl font-bold mb-4 text-white">Create New Document</h2>
+            <form onSubmit={submit} className="space-y-4">
+                <input
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    placeholder="Document Title"
+                    className="w-full px-4 py-2 rounded bg-slate-700"
+                    required
+                />
+                <div className="flex justify-end gap-3 pt-4">
+                    <button type="button" onClick={close} className="px-5 py-2 rounded font-semibold bg-slate-600 hover:bg-slate-500 transition">Cancel</button>
+                    <button type="submit" className="px-5 py-2 rounded font-semibold bg-teal-600 hover:bg-teal-500 transition">Create Document</button>
+                </div>
+            </form>
+        </ModalShell>
+    );
+};
+
+
+// --- View Components ---
+
 const TaskCard = ({ task, onOpenEdit }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task._id });
     const style = {
@@ -253,7 +291,7 @@ const TaskCard = ({ task, onOpenEdit }) => {
     );
 };
 
-const DocumentsPanel = ({ documents, onUpload, onDelete, loading }) => {
+const DocumentsPanel = ({ documents, onUpload, onDelete, loading, onOpenEditor, onOpenCreate }) => {
     const handleFileSelect = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -262,43 +300,64 @@ const DocumentsPanel = ({ documents, onUpload, onDelete, loading }) => {
         }
     };
 
+    const textDocs = documents.filter(d => d.isTextDocument);
+    const uploadedFiles = documents.filter(d => !d.isTextDocument);
+
     return (
-        <div className="p-8 flex-1">
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">Documents</h2>
-                <label className="bg-teal-600 px-4 py-2 rounded-lg cursor-pointer flex items-center gap-2 hover:bg-teal-500 transition font-semibold text-sm">
-                    <Upload size={16}/> Upload File
-                    <input type="file" onChange={handleFileSelect} hidden />
-                </label>
-            </div>
-            {loading ? (
-                <div className="flex justify-center py-10"><Loader2 className="animate-spin text-teal-500"/></div>
-            ) : documents.length > 0 ? (
-                <div className="bg-slate-800 rounded-xl">
-                    <div className="space-y-1 p-3">
-                        {documents.map(doc => (
-                            <div key={doc._id} className="grid grid-cols-6 items-center gap-4 p-3 rounded-lg hover:bg-slate-700/50 transition-colors">
-                                <div className="font-semibold truncate col-span-3">{doc.name}</div>
-                                <div className="text-sm text-slate-400 text-center col-span-1">by {doc.uploadedBy?.name || 'Unknown'}</div>
-                                <div className="text-sm text-slate-500 text-center col-span-1">{new Date(doc.createdAt).toLocaleDateString()}</div>
-                                <div className="flex justify-end items-center gap-4">
-                                    <a href={`http://localhost:9000${doc.fileUrl}`} target="_blank" rel="noreferrer" className="text-teal-400 hover:text-teal-300 p-2 rounded-full hover:bg-slate-700">
-                                        <Download size={16}/>
-                                    </a>
-                                    <button onClick={() => onDelete(doc._id)} className="text-red-500 hover:text-red-400 p-2 rounded-full hover:bg-slate-700">
-                                        <Trash2 size={16}/>
+        <div className="p-8 flex-1 space-y-8">
+            <div>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-bold">Collaborative Documents</h2>
+                    <button onClick={onOpenCreate} className="bg-slate-700 px-4 py-2 rounded-lg cursor-pointer flex items-center gap-2 hover:bg-slate-600 transition font-semibold text-sm">
+                        <Plus size={16}/> New Document
+                    </button>
+                </div>
+                {loading ? <div className="flex justify-center py-10"><Loader2 className="animate-spin text-teal-500"/></div> :
+                    textDocs.length > 0 ? (
+                        <div className="bg-slate-800 rounded-xl p-3">
+                            {textDocs.map(doc => (
+                                <div key={doc._id} className="grid grid-cols-6 items-center gap-4 p-3 rounded-lg hover:bg-slate-700/50 transition-colors">
+                                    <button onClick={() => onOpenEditor(doc._id)} className="font-semibold hover:underline truncate col-span-3 flex items-center gap-3 text-left">
+                                        <FileText size={16} className="text-teal-400"/> {doc.name}
                                     </button>
+                                    <div className="text-sm text-slate-400 text-center col-span-1">by {doc.uploadedBy?.name || 'Unknown'}</div>
+                                    <div className="text-sm text-slate-500 text-center col-span-1">{new Date(doc.createdAt).toLocaleDateString()}</div>
+                                    <div className="flex justify-end items-center">
+                                        <button onClick={() => onDelete(doc._id)} className="text-red-500 hover:text-red-400 p-2 rounded-full hover:bg-slate-700"><Trash2 size={16}/></button>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    ) : <div className="text-center py-10 bg-slate-800 rounded-xl"><h3 className="font-semibold text-xl">No Text Documents</h3><p className="text-slate-400 mt-2 text-sm">Create your first collaborative document.</p></div>
+                }
+            </div>
+            
+            <div>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-bold">Uploaded Files</h2>
+                    <label className="bg-teal-600 px-4 py-2 rounded-lg cursor-pointer flex items-center gap-2 hover:bg-teal-500 transition font-semibold text-sm">
+                        <Upload size={16}/> Upload File
+                        <input type="file" onChange={handleFileSelect} hidden />
+                    </label>
                 </div>
-            ) : (
-                <div className="text-center py-16 bg-slate-800 rounded-xl">
-                    <h3 className="font-semibold text-xl">No Documents Uploaded</h3>
-                    <p className="text-slate-400 mt-2">Upload the first file to get started.</p>
-                </div>
-            )}
+                 {loading ? <div className="flex justify-center py-10"><Loader2 className="animate-spin text-teal-500"/></div> :
+                    uploadedFiles.length > 0 ? (
+                        <div className="bg-slate-800 rounded-xl p-3">
+                            {uploadedFiles.map(doc => (
+                                <div key={doc._id} className="grid grid-cols-6 items-center gap-4 p-3 rounded-lg hover:bg-slate-700/50 transition-colors">
+                                    <div className="font-semibold truncate col-span-3 flex items-center gap-3"><Upload size={16} className="text-slate-400"/> {doc.name}</div>
+                                    <div className="text-sm text-slate-400 text-center col-span-1">by {doc.uploadedBy?.name || 'Unknown'}</div>
+                                    <div className="text-sm text-slate-500 text-center col-span-1">{new Date(doc.createdAt).toLocaleDateString()}</div>
+                                    <div className="flex justify-end items-center gap-4">
+                                        <a href={`http://localhost:9000${doc.fileUrl}`} target="_blank" rel="noreferrer" className="text-teal-400 hover:text-teal-300 p-2 rounded-full hover:bg-slate-700"><Download size={16}/></a>
+                                        <button onClick={() => onDelete(doc._id)} className="text-red-500 hover:text-red-400 p-2 rounded-full hover:bg-slate-700"><Trash2 size={16}/></button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : <div className="text-center py-10 bg-slate-800 rounded-xl"><h3 className="font-semibold text-xl">No Files Uploaded</h3><p className="text-slate-400 mt-2 text-sm">Upload your first file to share with the team.</p></div>
+                }
+            </div>
         </div>
     );
 };
@@ -314,7 +373,6 @@ const ChatPanel = ({ workspaceId, token, currentUser, socket }) => {
     };
 
     useEffect(() => {
-        // fetch initial messages via API
         const fetchMessages = async () => {
             try {
                 const res = await axios.get(`${API_BASE_URL}/chat/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -328,20 +386,14 @@ const ChatPanel = ({ workspaceId, token, currentUser, socket }) => {
 
     useEffect(() => {
         if (!socket) return;
-
-        // ensure joined (workspace page already joins but double-safe)
-        socket.emit("joinWorkspace", workspaceId);
-
-        const onReceive = (message) => {
-            setMessages(prev => [...prev, message]);
+        const handleReceiveMessage = (message) => {
+            setMessages((prevMessages) => [...prevMessages, message]);
         };
-
-        socket.on("receiveMessage", onReceive);
-
+        socket.on("receiveMessage", handleReceiveMessage);
         return () => {
-            socket.off("receiveMessage", onReceive);
+            socket.off("receiveMessage", handleReceiveMessage);
         };
-    }, [socket, workspaceId]);
+    }, [socket]);
 
     useEffect(() => {
         scrollToBottom();
@@ -350,7 +402,6 @@ const ChatPanel = ({ workspaceId, token, currentUser, socket }) => {
     const handleSendMessage = (e) => {
         e.preventDefault();
         if (newMessage.trim() && socket) {
-            // send via socket (server handles saving and rebroadcast)
             socket.emit("sendMessage", { content: newMessage, workspaceId });
             setNewMessage("");
         }
@@ -361,13 +412,11 @@ const ChatPanel = ({ workspaceId, token, currentUser, socket }) => {
             <h2 className="text-2xl font-bold mb-4">Team Chat</h2>
             <div className="flex-1 bg-slate-800 rounded-xl p-4 overflow-y-auto space-y-4">
                 {messages.map(msg => (
-                    <div key={msg._id || `${msg.createdAt}-${msg.sender?.id || msg.sender?._id}`} className={`flex gap-3 ${currentUser._id === (msg.sender._id || msg.sender.id) ? 'justify-end' : ''}`}>
-                        <div className={`flex items-start gap-3 ${currentUser._id === (msg.sender._id || msg.sender.id) ? 'flex-row-reverse' : ''}`}>
-                            <div className="w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center font-bold flex-shrink-0 text-sm">
-                                {msg.sender?.name?.charAt(0) || "U"}
-                            </div>
-                            <div className={`p-3 rounded-lg ${currentUser._id === (msg.sender._id || msg.sender.id) ? 'bg-teal-600' : 'bg-slate-700'}`}>
-                                <p className="font-semibold text-sm">{msg.sender?.name || "Unknown"}</p>
+                    <div key={msg._id} className={`flex gap-3 ${currentUser._id === msg.sender._id ? 'justify-end' : ''}`}>
+                        <div className={`flex items-start gap-3 ${currentUser._id === msg.sender._id ? 'flex-row-reverse' : ''}`}>
+                            <div className="w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center font-bold flex-shrink-0 text-sm">{msg.sender.name.charAt(0)}</div>
+                            <div className={`p-3 rounded-lg ${currentUser._id === msg.sender._id ? 'bg-teal-600' : 'bg-slate-700'}`}>
+                                <p className="font-semibold text-sm">{msg.sender.name}</p>
                                 <p className="text-white mt-1">{msg.content}</p>
                             </div>
                         </div>
@@ -390,6 +439,60 @@ const ChatPanel = ({ workspaceId, token, currentUser, socket }) => {
     );
 };
 
+const DocumentEditorPanel = ({ documentId, socket, onBack }) => {
+    const quillRef = useRef();
+    const wrapperRef = useCallback((wrapper) => {
+        if (wrapper == null) return;
+        wrapper.innerHTML = "";
+        const editor = document.createElement("div");
+        wrapper.append(editor);
+        const q = new Quill(editor, {
+            theme: "snow",
+            modules: { toolbar: [[{ header: [1, 2, 3, false] }], ['bold', 'italic', 'underline'], ['link'], [{ list: 'ordered' }, { list: 'bullet' }]] }
+        });
+        quillRef.current = q;
+    }, []);
+
+    useEffect(() => {
+        if (!socket || !quillRef.current) return;
+        
+        socket.once("load-document", documentData => {
+            quillRef.current.setContents(documentData);
+            quillRef.current.enable();
+        });
+
+        socket.emit("join-document", documentId);
+
+        const receiveHandler = (delta) => { quillRef.current.updateContents(delta); };
+        socket.on("receive-changes", receiveHandler);
+
+        const textChangeHandler = (delta, oldDelta, source) => { if (source !== 'user') return; socket.emit("send-changes", delta, documentId); };
+        quillRef.current.on('text-change', textChangeHandler);
+
+        const saveInterval = setInterval(() => {
+            socket.emit("save-document", { documentId, data: quillRef.current.getContents() });
+        }, 2000);
+
+        return () => {
+            socket.off("receive-changes", receiveHandler);
+            if (quillRef.current) { quillRef.current.off('text-change', textChangeHandler); }
+            clearInterval(saveInterval);
+        };
+    }, [socket, documentId]);
+    
+    return (
+        <div className="p-8 flex-1 flex flex-col">
+            <div className="flex items-center gap-4 mb-4">
+                 <button onClick={onBack} className="flex items-center gap-2 text-sm text-slate-400 hover:text-white"><ArrowLeft size={16} /> Back to Documents</button>
+            </div>
+            <div className="bg-white text-black rounded-lg overflow-hidden flex-1 quill-container">
+                 <div ref={wrapperRef} style={{height: "100%"}}></div>
+            </div>
+        </div>
+    );
+};
+
+
 // --- Main Workspace Page Component ---
 
 const WorkspacePage = () => {
@@ -402,6 +505,7 @@ const WorkspacePage = () => {
   const [columns, setColumns] = useState(null);
   const [loading, setLoading] = useState({ page: true, tasks: false, docs: false });
   const [activeTab, setActiveTab] = useState("kanban");
+  const [activeDocument, setActiveDocument] = useState(null);
   const [modal, setModal] = useState({ type: null, props: {} });
   const [socket, setSocket] = useState(null);
 
@@ -410,274 +514,35 @@ const WorkspacePage = () => {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-  // --- init socket once per workspace page
-  useEffect(() => {
-    if (!token || !workspaceId) return;
-    const s = io("http://localhost:9000", { auth: { token } });
-
-    s.on("connect_error", (err) => {
-      console.error("Socket connect error:", err.message);
-    });
-
-    s.on("connect", () => {
-      // join workspace room
-      s.emit("joinWorkspace", workspaceId);
-    });
-
-    // Listen for task updates from the server
-    s.on("taskUpdated", (task) => {
-      if (!task) return;
-      // handle delete markers
-      if (task.deleted) {
-        setTasks(prev => prev.filter(t => t._id !== task._id));
-        return;
-      }
-
-      setTasks(prev => {
-        const exists = prev.some(t => t._id === task._id);
-        if (exists) {
-          return prev.map(t => (t._id === task._id ? task : t));
-        } else {
-          return [...prev, task];
-        }
-      });
-    });
-
-    // Listen for doc updates (backend might broadcast to doc rooms; include here to be safe)
-    s.on("docUpdated", (payload) => {
-      // payload could be { docId, doc } — if doc included add it
-      if (!payload) return;
-      const doc = payload.doc || payload;
-      if (doc._id) {
-        setDocuments(prev => {
-          const exists = prev.some(d => d._id === doc._id);
-          if (exists) return prev.map(d => (d._id === doc._1d ?? doc._id ? doc : d));
-          return [...prev, doc];
-        });
-      }
-    });
-
-    setSocket(s);
-
-    return () => {
-      s.disconnect();
-      setSocket(null);
-    };
-  }, [token, workspaceId]);
+  // --- Socket Connection ---
+  useEffect(() => { if (!token) return; const newSocket = io("http://localhost:9000", { auth: { token } }); setSocket(newSocket); return () => newSocket.disconnect(); }, [token]);
 
   // --- Data Fetching ---
-  const fetchWorkspaceAndMembers = async () => {
-    try {
-        const res = await axios.get(`${API_BASE_URL}/workspaces/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } });
-        setWorkspace(res.data);
-    } catch (err) {
-        console.error("Error loading workspace details:", err);
-        if(err.response?.status === 401 || err.response?.status === 404) navigate("/dashboard");
-    }
-  };
-
-  useEffect(() => {
-    if (!token) { navigate("/"); return; }
-    const fetchAll = async () => {
-      setLoading({ page: true, tasks: true, docs: true });
-      try {
-        const [wsRes, tasksRes, docsRes, userRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/workspaces/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${API_BASE_URL}/tasks/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${API_BASE_URL}/documents/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${API_BASE_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
-        setWorkspace(wsRes.data);
-        setTasks(tasksRes.data || []);
-        setDocuments(docsRes.data || []);
-        setCurrentUser(userRes.data);
-      } catch (err) {
-        console.error("Error loading workspace:", err);
-        navigate("/dashboard");
-      } finally {
-        setLoading({ page: false, tasks: false, docs: false });
-      }
-    };
-    fetchAll();
-  }, [workspaceId, token, navigate]);
+  const fetchWorkspaceAndMembers = async () => { try { const res = await axios.get(`${API_BASE_URL}/workspaces/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }); setWorkspace(res.data); } catch (err) { if(err.response?.status === 401 || err.response?.status === 404) navigate("/dashboard"); }};
+  useEffect(() => { if (!token) { navigate("/"); return; } const fetchAll = async () => { setLoading({ page: true, tasks: true, docs: true }); try { const [wsRes, tasksRes, docsRes, userRes] = await Promise.all([ axios.get(`${API_BASE_URL}/workspaces/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }), axios.get(`${API_BASE_URL}/tasks/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }), axios.get(`${API_BASE_URL}/documents/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }), axios.get(`${API_BASE_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } }), ]); setWorkspace(wsRes.data); setTasks(tasksRes.data || []); setDocuments(docsRes.data || []); setCurrentUser(userRes.data); } catch (err) { navigate("/dashboard"); } finally { setLoading({ page: false, tasks: false, docs: false }); }}; fetchAll(); }, [workspaceId, token, navigate]);
 
   // Rebuild columns when tasks change
-  useEffect(() => {
-    if (!tasks) return;
-    setColumns({
-      "To Do": { name: "To Do", items: tasks.filter(t => t.status === "To Do") },
-      "In Progress": { name: "In Progress", items: tasks.filter(t => t.status === "In Progress") },
-      "Completed": { name: "Completed", items: tasks.filter(t => t.status === "Completed") },
-    });
-  }, [tasks]);
+  useEffect(() => { if (!tasks) return; setColumns({ "To Do": { name: "To Do", items: tasks.filter(t => t.status === "To Do") }, "In Progress": { name: "In Progress", items: tasks.filter(t => t.status === "In Progress") }, "Completed": { name: "Completed", items: tasks.filter(t => t.status === "Completed") }}); }, [tasks]);
 
   // --- API Actions ---
-
-  const createTask = async (data) => {
-    try {
-      const res = await axios.post(`${API_BASE_URL}/tasks`, data, { headers: { Authorization: `Bearer ${token}` } });
-      const createdTask = res.data;
-      if (createdTask.assignedTo && workspace?.members) {
-          createdTask.assignedTo = workspace.members.find(m => m._id === createdTask.assignedTo);
-      }
-      setTasks(prev => [...prev, createdTask]);
-      // emit to server so others get the update
-      if (socket) socket.emit("taskUpdated", createdTask);
-      closeModal();
-    } catch (err) { alert("Failed to create task"); }
-  };
-
-  const updateTask = async (taskId, patch) => {
-    const originalTasks = [...tasks];
-    try {
-      // optimistic update locally
-      const updatedTaskLocally = { ...tasks.find(t => t._id === taskId), ...patch };
-      if (patch.assignedTo && workspace?.members) {
-        updatedTaskLocally.assignedTo = workspace.members.find(m => m._id === patch.assignedTo);
-      }
-      setTasks(prev => prev.map(t => t._id === taskId ? updatedTaskLocally : t));
-      closeModal();
-
-      const res = await axios.put(`${API_BASE_URL}/tasks/${taskId}`, patch, { headers: { Authorization: `Bearer ${token}` } });
-      const saved = res.data;
-
-      // ensure saved data is used and broadcast
-      setTasks(prev => prev.map(t => t._id === taskId ? saved : t));
-      if (socket) socket.emit("taskUpdated", saved);
-    } catch (err) {
-      setTasks(originalTasks);
-      alert("Failed to update task");
-    }
-  };
-
-  const deleteTask = (taskId) => {
-    openModal("confirm", {
-        title: "Delete Task?",
-        message: "Are you sure you want to permanently delete this task?",
-        onConfirm: async () => {
-            const originalTasks = [...tasks];
-            try {
-                setTasks(prev => prev.filter(t => t._id !== taskId));
-                closeModal();
-                await axios.delete(`${API_BASE_URL}/tasks/${taskId}`, { headers: { Authorization: `Bearer ${token}` } });
-                // emit marker for deletion so other clients can remove it
-                if (socket) socket.emit("taskUpdated", { _id: taskId, deleted: true, workspace: workspaceId });
-            } catch (err) {
-                setTasks(originalTasks);
-                alert("Failed to delete task");
-            }
-        }
-    });
-  };
-
-  const inviteMember = async (email) => {
-    try {
-      await axios.post(`${API_BASE_URL}/workspaces/${workspaceId}/members`, { email }, { headers: { Authorization: `Bearer ${token}` } });
-      await fetchWorkspaceAndMembers(); // refresh members
-      closeModal();
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to invite member.");
-    }
-  };
-
-  const removeMember = (userId) => {
-    openModal("confirm", {
-        title: "Remove Member?",
-        message: "Are you sure you want to remove this member from the workspace?",
-        onConfirm: async () => {
-            try {
-                closeModal();
-                await axios.delete(`${API_BASE_URL}/workspaces/${workspaceId}/members/${userId}`, { headers: { Authorization: `Bearer ${token}` } });
-                setWorkspace(prev => ({...prev, members: prev.members.filter(m => m._id !== userId)}));
-            } catch (err) { alert("Failed to remove member."); }
-        }
-    });
-  };
-
-  const updateWorkspace = async (patch) => {
-    try {
-      const res = await axios.put(`${API_BASE_URL}/workspaces/${workspaceId}`, patch, { headers: { Authorization: `Bearer ${token}` } });
-      setWorkspace(res.data);
-      closeModal();
-    } catch (err) { alert("Failed to update workspace."); }
-  };
-
-  const uploadDocument = async (file) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-        const res = await axios.post(`${API_BASE_URL}/documents/${workspaceId}`, formData, {
-            headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" }
-        });
-        const created = res.data;
-        setDocuments(prev => [...prev, created]);
-        // emit to server so document listeners can pick it up (server emits to doc room)
-        if (socket) socket.emit("docUpdated", { docId: created._id, doc: created });
-    } catch (err) { alert("File upload failed"); }
-  };
-
-  const deleteDocument = (docId) => {
-    openModal("confirm", {
-        title: "Delete Document?",
-        message: "Are you sure you want to permanently delete this file?",
-        onConfirm: async () => {
-            const originalDocs = [...documents];
-            try {
-                setDocuments(prev => prev.filter(d => d._id !== docId));
-                closeModal();
-                await axios.delete(`${API_BASE_URL}/documents/${docId}`, { headers: { Authorization: `Bearer ${token}` } });
-                // emit a docUpdated with deleted marker (server might not handle it but harmless)
-                if (socket) socket.emit("docUpdated", { docId, deleted: true, workspace: workspaceId });
-            } catch (err) {
-                setDocuments(originalDocs);
-                alert("Failed to delete document");
-            }
-        }
-    });
-  };
-
-  const findContainer = (id) => {
-    if (columns && columns[id]) return id;
-    return columns ? Object.keys(columns).find((key) => columns[key].items.find((item) => item._id === id)) : null;
-  };
-
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-    if (!over) return;
-    const activeId = active.id;
-    const overId = over.id;
-    const activeContainer = findContainer(activeId);
-    const overContainer = findContainer(overId) || (columns[overId] ? overId : null);
-    if (!activeContainer || !overContainer || active.id === over.id) return;
-    const originalTasks = [...tasks];
-
-    if (activeContainer === overContainer) {
-      const taskList = columns[activeContainer].items;
-      const oldIndex = taskList.findIndex(t => t._1d ?? t._id === activeId);
-      const newIndex = taskList.findIndex(t => t._1d ?? t._id === overId);
-      if (oldIndex === -1 || newIndex === -1) return;
-      const reorderedTasksInColumn = arrayMove(taskList, oldIndex, newIndex);
-      const otherTasks = tasks.filter(t => t.status !== activeContainer);
-      setTasks([...otherTasks, ...reorderedTasksInColumn]);
-    } else {
-      setTasks(prev => prev.map(t => t._1d ?? t._id === activeId ? { ...t, status: overContainer } : t));
-      axios.put(`${API_BASE_URL}/tasks/${activeId}`, { status: overContainer }, { headers: { Authorization: `Bearer ${token}` } })
-        .then(res => {
-          // broadcast updated task
-          if (socket && res.data) socket.emit("taskUpdated", res.data);
-        })
-        .catch(() => {
-          alert("Could not update task status.");
-          setTasks(originalTasks);
-        });
-    }
-  };
-
-  // --- Modal helpers ---
+  const createTask = async (data) => { try { const res = await axios.post(`${API_BASE_URL}/tasks`, data, { headers: { Authorization: `Bearer ${token}` } }); const createdTask = res.data; if (createdTask.assignedTo && workspace?.members) { createdTask.assignedTo = workspace.members.find(m => m._id === createdTask.assignedTo); } setTasks(prev => [...prev, createdTask]); closeModal(); } catch (err) { alert("Failed to create task"); }};
+  const updateTask = async (taskId, patch) => { const originalTasks = [...tasks]; try { const updatedTaskLocally = { ...tasks.find(t => t._id === taskId), ...patch }; if (patch.assignedTo && workspace?.members) { updatedTaskLocally.assignedTo = workspace.members.find(m => m._id === patch.assignedTo); } setTasks(prev => prev.map(t => t._id === taskId ? updatedTaskLocally : t)); closeModal(); await axios.put(`${API_BASE_URL}/tasks/${taskId}`, patch, { headers: { Authorization: `Bearer ${token}` } }); } catch (err) { setTasks(originalTasks); alert("Failed to update task"); }};
+  const deleteTask = (taskId) => { openModal("confirm", { title: "Delete Task?", message: "Are you sure you want to permanently delete this task?", onConfirm: async () => { const originalTasks = [...tasks]; try { setTasks(prev => prev.filter(t => t._id !== taskId)); closeModal(); await axios.delete(`${API_BASE_URL}/tasks/${taskId}`, { headers: { Authorization: `Bearer ${token}` } }); } catch (err) { setTasks(originalTasks); alert("Failed to delete task"); } } }); };
+  const inviteMember = async (email) => { try { await axios.post(`${API_BASE_URL}/workspaces/${workspaceId}/members`, { email }, { headers: { Authorization: `Bearer ${token}` } }); fetchWorkspaceAndMembers(); } catch (err) { alert(err.response?.data?.message || "Failed to invite member."); }};
+  const removeMember = (userId) => { openModal("confirm", { title: "Remove Member?", message: "Are you sure you want to remove this member from the workspace?", onConfirm: async () => { try { closeModal(); await axios.delete(`${API_BASE_URL}/workspaces/${workspaceId}/members/${userId}`, { headers: { Authorization: `Bearer ${token}` } }); setWorkspace(prev => ({...prev, members: prev.members.filter(m => m._id !== userId)})); } catch (err) { alert("Failed to remove member."); } } }); };
+  const updateWorkspace = async (patch) => { try { const res = await axios.put(`${API_BASE_URL}/workspaces/${workspaceId}`, patch, { headers: { Authorization: `Bearer ${token}` } }); setWorkspace(res.data); closeModal(); } catch (err) { alert("Failed to update workspace."); }};
+  const uploadDocument = async (file) => { const formData = new FormData(); formData.append("file", file); try { const res = await axios.post(`${API_BASE_URL}/documents/${workspaceId}`, formData, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" }}); setDocuments(prev => [...prev, res.data]); } catch (err) { alert("File upload failed"); }};
+  const createTextDocument = async (title) => { try { const res = await axios.post(`${API_BASE_URL}/documents/text`, { title, workspaceId }, { headers: { Authorization: `Bearer ${token}` }}); setDocuments(prev => [...prev, res.data]); setActiveDocument(res.data._id); closeModal(); } catch (err) { alert("Failed to create document."); }};
+  const deleteDocument = (docId) => { openModal("confirm", { title: "Delete Document?", message: "Are you sure you want to permanently delete this file?", onConfirm: async () => { const originalDocs = [...documents]; try { setDocuments(prev => prev.filter(d => d._id !== docId)); closeModal(); await axios.delete(`${API_BASE_URL}/documents/${docId}`, { headers: { Authorization: `Bearer ${token}` } }); } catch (err) { setDocuments(originalDocs); alert("Failed to delete document"); } } }); };
+  const findContainer = (id) => { if (columns && columns[id]) return id; return columns ? Object.keys(columns).find((key) => columns[key].items.find((item) => item._id === id)) : null; };
+  const handleDragEnd = (event) => { const { active, over } = event; if (!over) return; const activeId = active.id; const overId = over.id; const activeContainer = findContainer(activeId); const overContainer = findContainer(overId) || (columns[overId] ? overId : null); if (!activeContainer || !overContainer || active.id === over.id) return; const originalTasks = [...tasks]; if (activeContainer === overContainer) { const taskList = columns[activeContainer].items; const oldIndex = taskList.findIndex(t => t._id === activeId); const newIndex = taskList.findIndex(t => t._id === overId); if (oldIndex === -1 || newIndex === -1) return; const reorderedTasksInColumn = arrayMove(taskList, oldIndex, newIndex); const otherTasks = tasks.filter(t => t.status !== activeContainer); setTasks([...otherTasks, ...reorderedTasksInColumn]); } else { setTasks(prev => prev.map(t => t._id === activeId ? { ...t, status: overContainer } : t)); axios.put(`${API_BASE_URL}/tasks/${activeId}`, { status: overContainer }, { headers: { Authorization: `Bearer ${token}` } }).catch(() => { alert("Could not update task status."); setTasks(originalTasks); }); }};
   const openModal = (type, props = {}) => setModal({ type, props });
   const closeModal = () => setModal({ type: null, props: {} });
 
   const renderTabContent = () => {
+    if (activeTab === 'docs' && activeDocument) {
+        return <DocumentEditorPanel documentId={activeDocument} socket={socket} onBack={() => setActiveDocument(null)} />;
+    }
     switch(activeTab) {
         case 'kanban':
             return (
@@ -697,7 +562,7 @@ const WorkspacePage = () => {
                 </DndContext>
             );
         case 'docs':
-            return <DocumentsPanel documents={documents} onUpload={uploadDocument} onDelete={deleteDocument} loading={loading.docs} />;
+            return <DocumentsPanel documents={documents} onUpload={uploadDocument} onDelete={deleteDocument} loading={loading.docs} onOpenEditor={setActiveDocument} onOpenCreate={() => openModal('createDocument')} />;
         case 'chat':
             return <ChatPanel workspaceId={workspaceId} token={token} currentUser={currentUser} socket={socket} />;
         default: return null;
@@ -715,17 +580,19 @@ const WorkspacePage = () => {
       {modal.type === "members" && <MembersModal close={closeModal} members={workspace.members} onInvite={inviteMember} onRemove={removeMember} />}
       {modal.type === "settings" && <SettingsModal close={closeModal} workspace={workspace} onUpdate={updateWorkspace} />}
       {modal.type === "confirm" && <ConfirmModal close={closeModal} {...modal.props} />}
+      {modal.type === "createDocument" && <CreateDocumentModal close={closeModal} onCreate={createTextDocument} />}
+
 
       <aside className="w-64 bg-slate-800 p-6 hidden md:flex flex-col border-r border-slate-700">
-        <p onClick={()=>{ navigate(`/Dashboard/${workspaceId}`) }} className="flex cursor-pointer items-center gap-2 text-sm text-slate-400 hover:text-white mb-6"><ArrowLeft size={16} /> Back to Dashboard</p>
+        <Link to={`/Dashboard/${currentUser?._id}`} className="flex items-center gap-2 text-sm text-slate-400 hover:text-white mb-6"><ArrowLeft size={16} /> Back to Dashboard</Link>
         <div className="mb-6">
           <h2 className="text-xl font-bold">{workspace.name}</h2>
           <p className="text-sm text-slate-400 line-clamp-3 mt-1">{workspace.description}</p>
         </div>
         <nav className="flex flex-col gap-2">
-            <button onClick={() => setActiveTab("kanban")} className={`flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${activeTab === 'kanban' ? 'bg-teal-500/20 font-semibold text-white' : 'hover:bg-slate-700 text-slate-300'}`}><CheckSquare size={18} /> Kanban Board</button>
-            <button onClick={() => setActiveTab("docs")} className={`flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${activeTab === 'docs' ? 'bg-teal-500/20 font-semibold text-white' : 'hover:bg-slate-700 text-slate-300'}`}><FileText size={18} /> Documents</button>
-            <button onClick={() => setActiveTab("chat")} className={`flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${activeTab === 'chat' ? 'bg-teal-500/20 font-semibold text-white' : 'hover:bg-slate-700 text-slate-300'}`}><MessageSquare size={18} /> Chat</button>
+            <button onClick={() => {setActiveTab("kanban"); setActiveDocument(null);}} className={`flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${activeTab === 'kanban' ? 'bg-teal-500/20 font-semibold text-white' : 'hover:bg-slate-700 text-slate-300'}`}><CheckSquare size={18} /> Kanban Board</button>
+            <button onClick={() => {setActiveTab("docs"); setActiveDocument(null);}} className={`flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${activeTab === 'docs' ? 'bg-teal-500/20 font-semibold text-white' : 'hover:bg-slate-700 text-slate-300'}`}><FileText size={18} /> Documents</button>
+            <button onClick={() => {setActiveTab("chat"); setActiveDocument(null);}} className={`flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${activeTab === 'chat' ? 'bg-teal-500/20 font-semibold text-white' : 'hover:bg-slate-700 text-slate-300'}`}><MessageSquare size={18} /> Chat</button>
             <button onClick={() => openModal("members")} className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700 transition-colors text-slate-300"><Users size={18} /> Members</button>
             <button onClick={() => openModal("settings")} className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700 transition-colors text-slate-300"><Settings size={18} /> Settings</button>
         </nav>
@@ -733,7 +600,7 @@ const WorkspacePage = () => {
 
       <main className="flex-1 flex flex-col">
         <header className="bg-slate-800/50 shadow-md flex items-center justify-between px-8 py-4 border-b border-slate-700">
-          <h1 className="text-2xl font-bold">{workspace.name} / <span className="text-teal-400">{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</span></h1>
+          <h1 className="text-2xl font-bold">{workspace.name} / <span className="text-teal-400">{activeDocument ? 'Editor' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</span></h1>
           {activeTab === 'kanban' && <button onClick={() => openModal("createTask")} className="bg-teal-600 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold hover:bg-teal-500 transition text-sm"><Plus size={16}/> New Task</button>}
         </header>
 
@@ -746,3 +613,4 @@ const WorkspacePage = () => {
 };
 
 export default WorkspacePage;
+

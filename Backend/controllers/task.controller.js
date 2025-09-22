@@ -4,11 +4,26 @@ import { Task } from "../models/Task.model.js";
 const createTask = async (req, res) => {
   try {
     const { title, description, status, workspace, assignedTo, dueDate } = req.body;
-    const task = new Task({ title, description, status, workspace, assignedTo, dueDate });
+    console.log(req.body)
+
+    if (!title || !workspace) {
+      return res.status(400).json({ message: "Title and workspace are required" });
+    }
+
+    const task = new Task({
+      title,
+      description: description || "",
+      status: status || "To Do",
+      workspace,
+      assignedTo: assignedTo || req.user._id, // default assign to creator
+      dueDate: dueDate || null,
+    });
+
     await task.save();
     res.status(201).json(task);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Task creation error:", err.message);
+    res.status(500).json({ message: "Failed to create task" });
   }
 };
 
