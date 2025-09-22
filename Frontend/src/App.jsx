@@ -4,6 +4,7 @@ import { BrowserRouter, Routes,Route } from 'react-router-dom'
 import Dashboard from './Components/Dashboard/Dashboard.jsx'
 import Workspace from './Components/Workspace.jsx'
 import Tasks from './Components/Tasks.jsx'
+import AdminPage from './Components/Admin.jsx'
 
 
 const App = () => {
@@ -15,6 +16,7 @@ const App = () => {
         <Route path='/Dashboard/:id' element={<Dashboard/>}/>
         <Route path='/Workspace/:id' element={<Workspace/>} />
         <Route path='/Tasks/:id' element={<Tasks/>} />
+        <Route path='/Admin/:id' element={<AdminPage/>} />
     </Routes>
     </BrowserRouter>
 

@@ -8,6 +8,7 @@ import taskRoutes from './routes/tasks.routes.js';
 import documentRoutes from './routes/document.routes.js'
 import chatRoutes from './routes/chat.routes.js'
 import commentRoutes from './routes/comment.routes.js'
+import adminRoutes from './routes/admin.routes.js'
 
 const app = express();
 
@@ -32,5 +33,6 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/comments', commentRoutes)
+app.use('/api/admin', adminRoutes)
 
 export { app };

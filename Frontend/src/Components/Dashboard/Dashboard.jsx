@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import {
   Plus, X, Briefcase, LogOut, Loader2, Search, Bell, MessageSquare,
   LayoutGrid, Users, CheckSquare, Settings, ChevronDown, Clock, ShieldCheck,
-  Edit3, Lock, Trash2
+  Edit3, Lock, Trash2, Shield
 } from "lucide-react";
 import axios from "axios";
 
@@ -27,44 +27,8 @@ const DashboardPage = () => {
   const token = localStorage.getItem("token");
   const API_BASE_URL = "http://localhost:9000/api";
 
-  useEffect(() => {
-    if (!token) { navigate("/"); return; }
-    const fetchData = async (endpoint, setter, loadingKey) => {
-      try {
-        setLoading(prev => ({ ...prev, [loadingKey]: true }));
-        const res = await axios.get(`${API_BASE_URL}/${endpoint}`, { headers: { Authorization: `Bearer ${token}` } });
-        setter(res.data);
-      } catch (error) {
-        if (error.response?.status === 401) handleLogout();
-        setAlert(`Failed to load ${loadingKey}.`);
-      } finally {
-        setLoading(prev => ({ ...prev, [loadingKey]: false }));
-      }
-    };
-    fetchData("users/me", setUser, "user");
-    fetchData("workspaces", setWorkspaces, "workspaces");
-    fetchData("teams", setTeams, "teams");
-  }, [token, navigate]);
-
-  useEffect(() => {
-    const fetchAllTasks = async () => {
-      if (workspaces.length > 0) {
-        try {
-          setLoading(prev => ({ ...prev, tasks: true }));
-          const taskPromises = workspaces.map(ws =>
-            axios.get(`${API_BASE_URL}/tasks/${ws._id}`, { headers: { Authorization: `Bearer ${token}` } })
-          );
-          const taskResults = await Promise.all(taskPromises);
-          setTasks(taskResults.flatMap(r => r.data));
-        } catch { } finally {
-          setLoading(prev => ({ ...prev, tasks: false }));
-        }
-      } else {
-        setLoading(prev => ({...prev, tasks: false}));
-      }
-    };
-    fetchAllTasks();
-  }, [workspaces, token]);
+  useEffect(() => { if (!token) { navigate("/"); return; } const fetchData = async (endpoint, setter, loadingKey) => { try { setLoading(prev => ({ ...prev, [loadingKey]: true })); const res = await axios.get(`${API_BASE_URL}/${endpoint}`, { headers: { Authorization: `Bearer ${token}` } }); setter(res.data); } catch (error) { if (error.response?.status === 401) handleLogout(); setAlert(`Failed to load ${loadingKey}.`); } finally { setLoading(prev => ({ ...prev, [loadingKey]: false })); }}; fetchData("users/me", setUser, "user"); fetchData("workspaces", setWorkspaces, "workspaces"); fetchData("teams", setTeams, "teams"); }, [token, navigate]);
+  useEffect(() => { const fetchAllTasks = async () => { if (workspaces.length > 0) { try { setLoading(prev => ({ ...prev, tasks: true })); const taskPromises = workspaces.map(ws => axios.get(`${API_BASE_URL}/tasks/${ws._id}`, { headers: { Authorization: `Bearer ${token}` } })); const taskResults = await Promise.all(taskPromises); setTasks(taskResults.flatMap(r => r.data)); } catch { } finally { setLoading(prev => ({ ...prev, tasks: false })); } } else { setLoading(prev => ({...prev, tasks: false})); }}; fetchAllTasks(); }, [workspaces, token]);
 
   const handleCreateWorkspace = async (newWorkspace) => { try { const res = await axios.post(`${API_BASE_URL}/workspaces`, newWorkspace, { headers: { Authorization: `Bearer ${token}` } }); setWorkspaces(prev => [...prev, res.data]); showAlert("Workspace created successfully!"); closeModal(); } catch { showAlert("Error creating workspace."); }};
   const handleCreateTeam = async (newTeam) => { try { const res = await axios.post(`${API_BASE_URL}/teams`, newTeam, { headers: { Authorization: `Bearer ${token}` } }); setTeams(prev => [...prev, res.data.team]); showAlert("Team created successfully!"); closeModal(); } catch { showAlert("Error creating team."); }};
@@ -75,13 +39,7 @@ const DashboardPage = () => {
   const openModal = (type) => setModal({ type, isOpen: true });
   const closeModal = () => setModal({ type: null, isOpen: false });
 
-  const tasksSummary = useMemo(() => {
-    return tasks.reduce((acc, task) => {
-      const status = task.status || "To Do";
-      acc[status] = (acc[status] || 0) + 1;
-      return acc;
-    }, { "To Do": 0, "In Progress": 0, "Completed": 0 });
-  }, [tasks]);
+  const tasksSummary = useMemo(() => { return tasks.reduce((acc, task) => { const status = task.status || "To Do"; acc[status] = (acc[status] || 0) + 1; return acc; }, { "To Do": 0, "In Progress": 0, "Completed": 0 }); }, [tasks]);
 
   if (loading.user || !user) {
     return <div className="min-h-screen flex justify-center items-center bg-slate-900 text-white"><Loader2 size={40} className="animate-spin text-teal-500" /></div>;
@@ -99,7 +57,9 @@ const DashboardPage = () => {
         <nav className="flex flex-col space-y-2">
           <Link to={`/Dashboard/${user._id}`} className="flex items-center gap-3 p-3 rounded-lg bg-teal-500/20 font-semibold"><LayoutGrid size={20}/> Dashboard</Link>
           <Link to={`/Tasks/${user._id}`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700 text-slate-300"><CheckSquare size={20}/> My Tasks</Link>
-          <button className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700 text-slate-300"><MessageSquare size={20}/> Messages</button>
+          {user.role === 'Admin' && (
+              <Link to={`/Admin/${user._id}`}className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700 text-slate-300"><Shield size={20}/> Admin Panel</Link>
+          )}
         </nav>
       </aside>
 
@@ -135,13 +95,15 @@ const DashboardPage = () => {
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-2xl font-bold">Workspaces</h2>
-                  <button onClick={() => openModal("workspace")} className="flex items-center gap-2 px-4 py-2 bg-teal-600 rounded-lg font-semibold hover:bg-teal-500"><Plus size={18}/> New</button>
+                  {user.role === 'Admin' && (
+                    <button onClick={() => openModal("workspace")} className="flex items-center gap-2 px-4 py-2 bg-teal-600 rounded-lg font-semibold hover:bg-teal-500"><Plus size={18}/> New</button>
+                  )}
                 </div>
                 {loading.workspaces ? <Loader2 className="animate-spin text-teal-500"/> :
                   workspaces.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {workspaces.map(ws => (
-                        <div key={ws._id} className="bg-slate-800 p-5 rounded-xl shadow-lg hover:shadow-teal-500/20 cursor-pointer" onClick={() => navigate(`/Workspace/${ws._id}`)}>
+                        <div key={ws._id} className="bg-slate-800 p-5 rounded-xl shadow-lg hover:shadow-teal-500/20 cursor-pointer" onClick={() => navigate(`/workspace/${ws._id}`)}>
                           <div className="flex items-center gap-4 mb-3"><Briefcase className="text-teal-500" size={24}/><h3 className="text-lg font-bold">{ws.name}</h3></div>
                           <p className="text-slate-400 text-sm">{ws.description || "No description."}</p>
                         </div>
@@ -155,7 +117,9 @@ const DashboardPage = () => {
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-2xl font-bold">Teams</h2>
-                  <button onClick={() => openModal("team")} className="flex items-center gap-2 px-4 py-2 bg-slate-700 rounded-lg font-semibold hover:bg-slate-600"><Plus size={18}/> New</button>
+                   {user.role === 'Admin' && (
+                    <button onClick={() => openModal("team")} className="flex items-center gap-2 px-4 py-2 bg-slate-700 rounded-lg font-semibold hover:bg-slate-600"><Plus size={18}/> New</button>
+                   )}
                 </div>
                 {loading.teams ? <Loader2 className="animate-spin text-teal-500"/> :
                   teams.length > 0 ? (
