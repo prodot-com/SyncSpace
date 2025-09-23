@@ -1,6 +1,7 @@
 import { User } from '../models/User.model.js';
 import { Workspace } from '../models/Workspace.model.js';
 import { Task } from '../models/Task.model.js';
+import { HelpRequest } from '../models/HelpRequest.model.js';
 
 // Middleware to check if user is an admin
 export const checkAdmin = (req, res, next) => {
@@ -49,6 +50,9 @@ export const deleteUser = async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
         if (user) {
+            if (user.role === 'Admin' && user._id.toString() !== req.user._id.toString()) {
+                return res.status(403).json({ message: 'Cannot delete other admin accounts.' });
+            }
             await user.deleteOne();
             res.json({ message: 'User removed' });
         } else {
@@ -59,10 +63,97 @@ export const deleteUser = async (req, res) => {
     }
 };
 
-
-// @desc    Update user role
-// @route   PUT /api/admin/users/:id/role
+// @desc    Get all workspaces
+// @route   GET /api/admin/workspaces
 // @access  Admin
+export const getAllWorkspaces = async (req, res) => {
+    try {
+        const workspaces = await Workspace.find({}).populate('createdBy', 'name email').populate('members', 'name');
+        res.json(workspaces);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// @desc    Update a workspace
+// @route   PUT /api/admin/workspaces/:id
+// @access  Admin
+export const updateWorkspace = async(req, res) => {
+    try {
+        const workspace = await Workspace.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('createdBy', 'name email').populate('members', 'name');
+        if(!workspace) return res.status(404).json({ message: "Workspace not found" });
+        res.json(workspace);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// @desc    Delete a workspace
+// @route   DELETE /api/admin/workspaces/:id
+// @access  Admin
+export const deleteWorkspace = async (req, res) => {
+    try {
+        const workspace = await Workspace.findById(req.params.id);
+        if (workspace) {
+            await workspace.deleteOne();
+            // Also delete associated tasks, docs etc.
+            await Task.deleteMany({ workspace: req.params.id });
+            res.json({ message: 'Workspace removed' });
+        } else {
+            res.status(404).json({ message: 'Workspace not found' });
+        }
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// @desc    Get all tasks from all workspaces
+// @route   GET /api/admin/tasks
+// @access  Admin
+export const getAllTasks = async (req, res) => {
+    try {
+        const tasks = await Task.find({}).populate('workspace', 'name').populate('assignedTo', 'name');
+        res.json(tasks);
+    } catch(err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// @desc    Delete a task
+// @route   DELETE /api/admin/tasks/:id
+// @access  Admin
+export const deleteTask = async (req, res) => {
+    try {
+        const task = await Task.findById(req.params.id);
+        if (task) {
+            await task.deleteOne();
+            res.json({ message: 'Task removed' });
+        } else {
+            res.status(404).json({ message: 'Task not found' });
+        }
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// @desc    Update a task as an Admin
+// @route   PUT /api/admin/tasks/:id
+// @access  Admin
+export const updateTask = async (req, res) => {
+    try {
+        const task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true })
+            .populate('workspace', 'name')
+            .populate('assignedTo', 'name');
+            
+        if (!task) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+        res.json(task);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
 export const updateUserRole = async (req, res) => {
     try {
         const { role } = req.body;
@@ -77,29 +168,33 @@ export const updateUserRole = async (req, res) => {
     }
 };
 
-export const getAllWorkspaces = async (req, res) => {
+export const getAllHelpRequests = async (req, res) => {
     try {
-        const workspaces = await Workspace.find({}).populate('createdBy', 'name email');
-        res.json(workspaces);
+        const requests = await HelpRequest.find({})
+            .populate('user', 'name email')
+            .populate('workspace', 'name')
+            .sort({ createdAt: -1 });
+        res.json(requests);
     } catch (err) {
         res.status(500).json({ message: err.message });
+        console.log(err.message)
     }
 };
 
-// @desc    Delete a workspace
-// @route   DELETE /api/admin/workspaces/:id
+// @desc    Delete (resolve) a help request
+// @route   DELETE /api/admin/help-requests/:id
 // @access  Admin
-export const deleteWorkspaceByAdmin = async (req, res) => {
+export const resolveHelpRequest = async (req, res) => {
     try {
-        const workspace = await Workspace.findById(req.params.id);
-        if (workspace) {
-            // In a real app, you'd also delete associated tasks, docs, etc.
-            await workspace.deleteOne();
-            res.json({ message: 'Workspace removed' });
+        const request = await HelpRequest.findById(req.params.id);
+        if (request) {
+            await request.deleteOne();
+            res.json({ message: 'Help request resolved' });
         } else {
-            res.status(404).json({ message: 'Workspace not found' });
+            res.status(404).json({ message: 'Help request not found' });
         }
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 };
+

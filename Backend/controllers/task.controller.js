@@ -1,31 +1,51 @@
 import { Task } from "../models/Task.model.js";
 
-// ✅ Create Task
-const createTask = async (req, res) => {
-  try {
-    const { title, description, status, workspace, assignedTo, dueDate } = req.body;
-    console.log(req.body)
+const notifyUser = async (req, userToNotifyId, message, link) => {
+    if (userToNotifyId.toString() === req.user._id.toString()) return; // Don't notify user about their own actions
 
-    if (!title || !workspace) {
-      return res.status(400).json({ message: "Title and workspace are required" });
-    }
-
-    const task = new Task({
-      title,
-      description: description || "",
-      status: status || "To Do",
-      workspace,
-      assignedTo: assignedTo || req.user._id, // default assign to creator
-      dueDate: dueDate || null,
+    const notification = await Notification.create({
+        user: userToNotifyId,
+        sender: req.user._id,
+        message,
+        link
     });
 
-    await task.save();
-    res.status(201).json(task);
-  } catch (err) {
-    console.error("Task creation error:", err.message);
-    res.status(500).json({ message: "Failed to create task" });
-  }
+    const populatedNotification = await notification.populate('sender', 'name');
+
+    const io = req.app.get('socketio');
+    const onlineUsers = req.app.get('onlineUsers');
+    const recipientSocketId = onlineUsers[userToNotifyId.toString()];
+
+    if (recipientSocketId) {
+        io.to(recipientSocketId).emit('new-notification', populatedNotification);
+    }
 };
+
+// ✅ Create Task
+const createTask = async (req, res) => {
+    try {
+        const { title, description, status, workspace, assignedTo, dueDate } = req.body;
+        const task = new Task({ title, description, status, workspace, assignedTo, dueDate });
+        await task.save();
+
+        // --- NOTIFICATION LOGIC ---
+        if (assignedTo) {
+            await notifyUser(
+                req,
+                assignedTo,
+                `${req.user.name} assigned you a new task: "${title}"`,
+                `/workspace/${workspace}`
+            );
+        }
+        // --- END NOTIFICATION LOGIC ---
+
+        const populatedTask = await task.populate('assignedTo', 'name email');
+        res.status(201).json(populatedTask);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
 
 // ✅ Get Tasks by Workspace
 const getTasks = async (req, res) => {

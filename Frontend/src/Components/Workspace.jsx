@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback , useMemo} from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import {
   DndContext,
@@ -16,27 +16,548 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
   Plus, X, Loader2, MessageSquare, CheckSquare, FileText,
-  Users, Settings, ArrowLeft, Edit3, Trash2, UserPlus, Upload, Send, Download
+  Users, Settings, ArrowLeft, Edit3, Trash2, UserPlus, Upload, Send, Download, LifeBuoy
 } from "lucide-react";
 import axios from "axios";
 import { io } from "socket.io-client";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
 
-// --- Reusable UI Components & Modals (Minimized for brevity) ---
-const ModalShell = ({ children, close }) => ( <div className="fixed inset-0 bg-black bg-opacity-70 z-[60] flex justify-center items-center p-4"><div className="bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-lg relative animate-fade-in-up"><button onClick={close} className="absolute top-4 right-4 text-slate-400 hover:text-white"><X size={20} /></button>{children}</div></div>);
-const CreateTaskModal = ({ close, onCreate, workspaceId, members }) => { const [title, setTitle] = useState(""); const [description, setDescription] = useState(""); const [status, setStatus] = useState("To Do"); const [assignedTo, setAssignedTo] = useState(""); const submit = (e) => { e.preventDefault(); if (!title.trim()) return; onCreate({ title, description, status, assignedTo: assignedTo || null, workspace: workspaceId }); }; return (<ModalShell close={close}><h2 className="text-2xl font-bold mb-3">Create Task</h2><form onSubmit={submit} className="space-y-3"><input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" className="w-full px-3 py-2 rounded bg-slate-700" required /><textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description" rows={4} className="w-full px-3 py-2 rounded bg-slate-700" /><div className="flex gap-2"><select value={status} onChange={e => setStatus(e.target.value)} className="px-3 py-2 rounded bg-slate-700"><option>To Do</option><option>In Progress</option><option>Completed</option></select><select value={assignedTo} onChange={e => setAssignedTo(e.target.value)} className="px-3 py-2 rounded bg-slate-700"><option value="">Unassigned</option>{members.map(m => <option key={m._id} value={m._id}>{m.name}</option>)}</select></div><div className="flex gap-2 pt-2"><button type="submit" className="bg-teal-600 px-4 py-2 rounded font-semibold hover:bg-teal-500 transition">Create</button><button type="button" onClick={close} className="bg-slate-700 px-4 py-2 rounded font-semibold hover:bg-slate-600 transition">Cancel</button></div></form></ModalShell>);};
-const EditTaskModal = ({ close, task, members, onUpdate, onDelete, isAdmin }) => { const [title, setTitle] = useState(task.title || ""); const [description, setDescription] = useState(task.description || ""); const [status, setStatus] = useState(task.status || "To Do"); const [assignedTo, setAssignedTo] = useState(task.assignedTo ? task.assignedTo._id : ""); const submit = (e) => { e.preventDefault(); if (!title.trim()) return; onUpdate(task._id, { title, description, status, assignedTo: assignedTo || null }); }; return (<ModalShell close={close}><h2 className="text-2xl font-bold mb-3">Edit Task</h2><form onSubmit={submit} className="space-y-3"><input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" className="w-full px-3 py-2 rounded bg-slate-700" required /><textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description" rows={4} className="w-full px-3 py-2 rounded bg-slate-700" /><div className="flex gap-2"><select value={status} onChange={e => setStatus(e.target.value)} className="px-3 py-2 rounded bg-slate-700"><option>To Do</option><option>In Progress</option><option>Completed</option></select><select value={assignedTo} onChange={e => setAssignedTo(e.target.value)} className="px-3 py-2 rounded bg-slate-700"><option value="">Unassigned</option>{members.map(m => <option key={m._id} value={m._id}>{m.name}</option>)}</select></div><div className="flex justify-between items-center pt-2">{isAdmin && (<button type="button" onClick={() => onDelete(task._id)} className="bg-red-600 px-4 py-2 rounded font-semibold hover:bg-red-500 transition text-white">Delete Task</button>)}<div className="flex gap-2"><button type="button" onClick={close} className="bg-slate-700 px-4 py-2 rounded font-semibold hover:bg-slate-600 transition">Cancel</button><button type="submit" className="bg-teal-600 px-4 py-2 rounded font-semibold hover:bg-teal-500 transition">Save Changes</button></div></div></form></ModalShell>);};
-const ConfirmModal = ({ close, onConfirm, title, message }) => ( <ModalShell close={close}><h2 className="text-2xl font-bold mb-3">{title}</h2><p className="text-slate-300 mb-6">{message}</p><div className="flex gap-2 justify-end"><button onClick={onConfirm} className="bg-red-600 px-4 py-2 rounded font-semibold hover:bg-red-500 transition text-white">Confirm</button><button type="button" onClick={close} className="bg-slate-700 px-4 py-2 rounded font-semibold hover:bg-slate-600 transition">Cancel</button></div></ModalShell>);
-const MembersModal = ({ close, members, onInvite, onRemove, isAdmin }) => { const [email, setEmail] = useState(""); const handleInvite = (e) => { e.preventDefault(); if (!email.trim()) return; onInvite(email); setEmail(""); }; return ( <ModalShell close={close}><h2 className="text-2xl font-bold mb-3">Manage Members</h2>{isAdmin && (<form onSubmit={handleInvite} className="mb-3"><div className="flex gap-2"><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Invite by email" className="flex-1 px-3 py-2 rounded bg-slate-700" required /><button type="submit" className="bg-teal-600 px-3 py-2 rounded font-semibold hover:bg-teal-500 transition"><UserPlus size={16} /></button></div></form>)}<div className="space-y-2 max-h-64 overflow-y-auto">{members.map(m => ( <div key={m._id} className="flex items-center justify-between p-2 bg-slate-900/50 rounded"><div><div className="font-semibold">{m.name}</div><div className="text-xs text-slate-400">{m.email}</div></div>{isAdmin && (<button onClick={() => onRemove(m._id)} className="text-red-500 hover:text-red-400 p-1"><Trash2 size={16} /></button>)}</div>))}</div></ModalShell>);};
-const SettingsModal = ({ close, workspace, onUpdate, onDeleteWorkspace, isAdmin }) => { const [name, setName] = useState(workspace.name || ""); const [description, setDescription] = useState(workspace.description || ""); const submit = (e) => { e.preventDefault(); if (!name.trim()) return; onUpdate({ name, description }); }; return ( <ModalShell close={close}><h2 className="text-2xl font-bold mb-3">Workspace Settings</h2><form onSubmit={submit} className="space-y-3"><input value={name} onChange={e => setName(e.target.value)} placeholder="Workspace name" className="w-full px-3 py-2 rounded bg-slate-700" required /><textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description" className="w-full px-3 py-2 rounded bg-slate-700" rows={4} /><div className="flex justify-between items-center pt-2"><button type="button" onClick={onDeleteWorkspace} className="text-red-500 hover:underline">Delete Workspace</button><div className="flex gap-2"><button type="submit" className="bg-teal-600 px-4 py-2 rounded font-semibold hover:bg-teal-500 transition">Save Changes</button><button type="button" onClick={close} className="bg-slate-700 px-4 py-2 rounded font-semibold hover:bg-slate-600 transition">Cancel</button></div></div></form></ModalShell>);};
-const CreateDocumentModal = ({ close, onCreate }) => { const [title, setTitle] = useState(""); const submit = (e) => { e.preventDefault(); if (!title.trim()) return; onCreate(title); }; return (<ModalShell close={close}><h2 className="text-2xl font-bold mb-4 text-white">Create New Document</h2><form onSubmit={submit} className="space-y-4"><input value={title} onChange={e => setTitle(e.target.value)} placeholder="Document Title" className="w-full px-4 py-2 rounded bg-slate-700" required /><div className="flex justify-end gap-3 pt-4"><button type="button" onClick={close} className="px-5 py-2 rounded font-semibold bg-slate-600 hover:bg-slate-500 transition">Cancel</button><button type="submit" className="px-5 py-2 rounded font-semibold bg-teal-600 hover:bg-teal-500 transition">Create Document</button></div></form></ModalShell>);};
+// --- Reusable UI Components & Modals ---
+
+const ModalShell = ({ children, close }) => (
+    <div className="fixed inset-0 bg-black bg-opacity-70 z-[60] flex justify-center items-center p-4">
+        <div className="bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-lg relative animate-fade-in-up">
+            <button
+                onClick={close}
+                className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+            >
+                <X size={24} />
+            </button>
+            {children}
+        </div>
+    </div>
+);
+
+const SuccessModal = ({ close, title, message }) => (
+    <ModalShell close={close}>
+        <h2 className="text-2xl font-bold mb-3 text-teal-400">{title}</h2>
+        <p className="text-slate-300 mb-6">{message}</p>
+        <div className="flex gap-3 justify-end">
+            <button onClick={close} className="px-5 py-2 rounded font-semibold bg-teal-600 hover:bg-teal-500 transition text-white">Close</button>
+        </div>
+    </ModalShell>
+);
+
+
+const CreateTaskModal = ({ close, onCreate, workspaceId, members }) => {
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
+    const [status, setStatus] = useState("To Do");
+    const [assignedTo, setAssignedTo] = useState("");
+
+    const submit = (e) => {
+        e.preventDefault();
+        if (!title.trim()) return;
+        onCreate({ title, description, status, assignedTo: assignedTo || null, workspace: workspaceId });
+    };
+
+    return (
+        <ModalShell close={close}>
+            <h2 className="text-2xl font-bold mb-4 text-white">Create New Task</h2>
+            <form onSubmit={submit} className="space-y-4">
+                <input
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    placeholder="Task Title"
+                    className="w-full px-4 py-2 rounded bg-slate-700 border border-slate-600 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition"
+                    required
+                />
+                <textarea
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    placeholder="Add a description..."
+                    rows={4}
+                    className="w-full px-4 py-2 rounded bg-slate-700 border border-slate-600 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition"
+                />
+                <div className="grid grid-cols-2 gap-4">
+                    <select value={status} onChange={e => setStatus(e.target.value)} className="px-3 py-2 rounded bg-slate-700 border border-slate-600 appearance-none">
+                        <option>To Do</option>
+                        <option>In Progress</option>
+                        <option>Completed</option>
+                    </select>
+                    <select value={assignedTo} onChange={e => setAssignedTo(e.target.value)} className="px-3 py-2 rounded bg-slate-700 border border-slate-600 appearance-none">
+                        <option value="">Unassigned</option>
+                        {members.map(m => <option key={m._id} value={m._id}>{m.name}</option>)}
+                    </select>
+                </div>
+                <div className="flex justify-end gap-3 pt-4">
+                    <button type="button" onClick={close} className="px-5 py-2 rounded font-semibold bg-slate-600 hover:bg-slate-500 transition">Cancel</button>
+                    <button type="submit" className="px-5 py-2 rounded font-semibold bg-teal-600 hover:bg-teal-500 transition">Create Task</button>
+                </div>
+            </form>
+        </ModalShell>
+    );
+};
+
+const EditTaskModal = ({ close, task, members, onUpdate, onDelete, isAdmin }) => {
+    const [title, setTitle] = useState(task.title || "");
+    const [description, setDescription] = useState(task.description || "");
+    const [status, setStatus] = useState(task.status || "To Do");
+    const [assignedTo, setAssignedTo] = useState(task.assignedTo ? task.assignedTo._id : "");
+
+    const submit = (e) => {
+        e.preventDefault();
+        if (!title.trim()) return;
+        onUpdate(task._id, { title, description, status, assignedTo: assignedTo || null });
+    };
+
+    return (
+        <ModalShell close={close}>
+            <h2 className="text-2xl font-bold mb-4">Edit Task</h2>
+            <form onSubmit={submit} className="space-y-4">
+                <input
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    placeholder="Task Title"
+                    className="w-full px-4 py-2 rounded bg-slate-700 border border-slate-600"
+                    required
+                />
+                <textarea
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    placeholder="Add a description..."
+                    rows={4}
+                    className="w-full px-4 py-2 rounded bg-slate-700 border border-slate-600"
+                />
+                <div className="grid grid-cols-2 gap-4">
+                    <select value={status} onChange={e => setStatus(e.target.value)} className="px-3 py-2 rounded bg-slate-700 border border-slate-600 appearance-none">
+                        <option>To Do</option>
+                        <option>In Progress</option>
+                        <option>Completed</option>
+                    </select>
+                    <select value={assignedTo} onChange={e => setAssignedTo(e.target.value)} className="px-3 py-2 rounded bg-slate-700 border border-slate-600 appearance-none">
+                        <option value="">Unassigned</option>
+                        {members.map(m => <option key={m._id} value={m._id}>{m.name}</option>)}
+                    </select>
+                </div>
+                <div className="flex justify-between items-center pt-4">
+                    {isAdmin && (
+                        <button type="button" onClick={() => onDelete(task._id)} className="px-5 py-2 rounded font-semibold bg-red-600 hover:bg-red-500 transition text-white">
+                            Delete Task
+                        </button>
+                    )}
+                    <div className="flex gap-3 ml-auto">
+                        <button type="button" onClick={close} className="px-5 py-2 rounded font-semibold bg-slate-600 hover:bg-slate-500 transition">Cancel</button>
+                        <button type="submit" className="px-5 py-2 rounded font-semibold bg-teal-600 hover:bg-teal-500 transition">Save Changes</button>
+                    </div>
+                </div>
+            </form>
+        </ModalShell>
+    );
+};
+
+const ConfirmModal = ({ close, onConfirm, title, message }) => (
+    <ModalShell close={close}>
+        <h2 className="text-2xl font-bold mb-3">{title}</h2>
+        <p className="text-slate-300 mb-6">{message}</p>
+        <div className="flex gap-3 justify-end">
+            <button type="button" onClick={close} className="px-5 py-2 rounded font-semibold bg-slate-600 hover:bg-slate-500 transition">Cancel</button>
+            <button onClick={onConfirm} className="px-5 py-2 rounded font-semibold bg-red-600 hover:bg-red-500 transition text-white">Confirm</button>
+        </div>
+    </ModalShell>
+);
+
+const MembersModal = ({ close, members, onInvite, onRemove, isAdmin }) => {
+    const [email, setEmail] = useState("");
+    const handleInvite = (e) => {
+        e.preventDefault();
+        if (!email.trim()) return;
+        onInvite(email);
+        setEmail("");
+    };
+
+    return (
+        <ModalShell close={close}>
+            <h2 className="text-2xl font-bold mb-4">Manage Members</h2>
+            {isAdmin && (
+                <form onSubmit={handleInvite} className="mb-4">
+                    <div className="flex gap-2">
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            placeholder="Invite user by email"
+                            className="flex-1 px-4 py-2 rounded bg-slate-700 border border-slate-600"
+                            required
+                        />
+                        <button type="submit" className="bg-teal-600 p-2 rounded font-semibold hover:bg-teal-500 transition">
+                            <UserPlus size={20} />
+                        </button>
+                    </div>
+                </form>
+            )}
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
+                {members.map(m => (
+                    <div key={m._id} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
+                        <div>
+                            <div className="font-semibold">{m.name}</div>
+                            <div className="text-xs text-slate-400">{m.email}</div>
+                        </div>
+                        {isAdmin && (
+                            <button onClick={() => onRemove(m._id)} className="text-red-500 hover:text-red-400 p-1">
+                                <Trash2 size={16} />
+                            </button>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </ModalShell>
+    );
+};
+
+const SettingsModal = ({ close, workspace, onUpdate, onDeleteWorkspace, isAdmin }) => {
+    const [name, setName] = useState(workspace.name || "");
+    const [description, setDescription] = useState(workspace.description || "");
+
+    const submit = (e) => {
+        e.preventDefault();
+        if (!name.trim()) return;
+        onUpdate({ name, description });
+    };
+
+    return (
+        <ModalShell close={close}>
+            <h2 className="text-2xl font-bold mb-4">Workspace Settings</h2>
+            <form onSubmit={submit} className="space-y-4">
+                <input
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="Workspace name"
+                    className="w-full px-4 py-2 rounded bg-slate-700 border border-slate-600"
+                    required
+                />
+                <textarea
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    placeholder="Description"
+                    className="w-full px-4 py-2 rounded bg-slate-700 border border-slate-600"
+                    rows={4}
+                />
+                <div className="flex justify-between items-center pt-2">
+                    <button type="button" onClick={onDeleteWorkspace} className="text-red-500 hover:underline text-sm">
+                        Delete Workspace
+                    </button>
+                    <div className="flex gap-3">
+                        <button type="button" onClick={close} className="px-5 py-2 rounded font-semibold bg-slate-600 hover:bg-slate-500 transition">Cancel</button>
+                        <button type="submit" className="px-5 py-2 rounded font-semibold bg-teal-600 hover:bg-teal-500 transition">Save Changes</button>
+                    </div>
+                </div>
+            </form>
+        </ModalShell>
+    );
+};
+
+const CreateDocumentModal = ({ close, onCreate }) => {
+    const [title, setTitle] = useState("");
+    const submit = (e) => {
+        e.preventDefault();
+        if (!title.trim()) return;
+        onCreate(title);
+    };
+
+    return (
+        <ModalShell close={close}>
+            <h2 className="text-2xl font-bold mb-4 text-white">Create New Document</h2>
+            <form onSubmit={submit} className="space-y-4">
+                <input
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    placeholder="Document Title"
+                    className="w-full px-4 py-2 rounded bg-slate-700"
+                    required
+                />
+                <div className="flex justify-end gap-3 pt-4">
+                    <button type="button" onClick={close} className="px-5 py-2 rounded font-semibold bg-slate-600 hover:bg-slate-500 transition">Cancel</button>
+                    <button type="submit" className="px-5 py-2 rounded font-semibold bg-teal-600 hover:bg-teal-500 transition">Create Document</button>
+                </div>
+            </form>
+        </ModalShell>
+    );
+};
+
+const HelpModal = ({ close, onSend }) => {
+    const [message, setMessage] = useState("");
+    const submit = (e) => {
+        e.preventDefault();
+        if (!message.trim()) return;
+        onSend(message);
+    };
+
+    return (
+        <ModalShell close={close}>
+            <h2 className="text-2xl font-bold mb-4 text-white">Help & Support</h2>
+            <p className="text-slate-400 text-sm mb-4">Describe your issue below. A request will be sent to the workspace administrator.</p>
+            <form onSubmit={submit} className="space-y-4">
+                <textarea
+                    value={message}
+                    onChange={e => setMessage(e.target.value)}
+                    placeholder="How can we help you?"
+                    rows={5}
+                    className="w-full px-4 py-2 rounded bg-slate-700"
+                    required
+                />
+                <div className="flex justify-end gap-3 pt-2">
+                    <button type="button" onClick={close} className="px-5 py-2 rounded font-semibold bg-slate-600 hover:bg-slate-500 transition">Cancel</button>
+                    <button type="submit" className="px-5 py-2 rounded font-semibold bg-teal-600 hover:bg-teal-500 transition">Send Request</button>
+                </div>
+            </form>
+        </ModalShell>
+    );
+};
+
 
 // --- View Components ---
-const TaskCard = ({ task, onOpenEdit }) => { const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task._id }); const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 50 : "auto", boxShadow: isDragging ? "0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1)" : "" }; return ( <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={`bg-slate-700 p-4 rounded-lg mb-3 shadow-md cursor-grab active:cursor-grabbing`}><div className="flex justify-between items-start"><div className="flex-1 mr-2"><p className="font-semibold text-white leading-snug">{task.title}</p><p className="text-xs text-slate-400 mt-2">{task.assignedTo ? `Assigned to: ${task.assignedTo.name}` : "Unassigned"}</p></div><button onClick={() => onOpenEdit(task)} className="text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-600 transition-colors"><Edit3 size={14} /></button></div></div>);};
-const DocumentsPanel = ({ documents, onUpload, onDelete, loading, onOpenEditor, onOpenCreate, isAdmin }) => { const handleFileSelect = (e) => { const file = e.target.files[0]; if (file) { onUpload(file); e.target.value = null; } }; const textDocs = documents.filter(d => d.isTextDocument); const uploadedFiles = documents.filter(d => !d.isTextDocument); return ( <div className="p-8 flex-1 space-y-8"><div><div className="flex items-center justify-between mb-4"><h2 className="text-2xl font-bold">Collaborative Documents</h2>{isAdmin && (<button onClick={onOpenCreate} className="bg-slate-700 px-4 py-2 rounded-lg cursor-pointer flex items-center gap-2 hover:bg-slate-600 transition font-semibold text-sm"><Plus size={16}/> New Document</button>)}</div>{loading ? <div className="flex justify-center py-10"><Loader2 className="animate-spin text-teal-500"/></div> : textDocs.length > 0 ? ( <div className="bg-slate-800 rounded-xl p-3">{textDocs.map(doc => ( <div key={doc._id} className="grid grid-cols-6 items-center gap-4 p-3 rounded-lg hover:bg-slate-700/50 transition-colors"><button onClick={() => onOpenEditor(doc._id)} className="font-semibold hover:underline truncate col-span-3 flex items-center gap-3 text-left"><FileText size={16} className="text-teal-400"/> {doc.name}</button><div className="text-sm text-slate-400 text-center col-span-1">by {doc.uploadedBy?.name || 'Unknown'}</div><div className="text-sm text-slate-500 text-center col-span-1">{new Date(doc.createdAt).toLocaleDateString()}</div><div className="flex justify-end items-center">{isAdmin && (<button onClick={() => onDelete(doc._id)} className="text-red-500 hover:text-red-400 p-2 rounded-full hover:bg-slate-700"><Trash2 size={16}/></button>)}</div></div>))}</div>) : <div className="text-center py-10 bg-slate-800 rounded-xl"><h3 className="font-semibold text-xl">No Text Documents</h3><p className="text-slate-400 mt-2 text-sm">Create your first collaborative document.</p></div>}</div><div><div className="flex items-center justify-between mb-4"><h2 className="text-2xl font-bold">Uploaded Files</h2>{isAdmin && (<label className="bg-teal-600 px-4 py-2 rounded-lg cursor-pointer flex items-center gap-2 hover:bg-teal-500 transition font-semibold text-sm"><Upload size={16}/> Upload File<input type="file" onChange={handleFileSelect} hidden /></label>)}</div>{loading ? <div className="flex justify-center py-10"><Loader2 className="animate-spin text-teal-500"/></div> : uploadedFiles.length > 0 ? ( <div className="bg-slate-800 rounded-xl p-3">{uploadedFiles.map(doc => ( <div key={doc._id} className="grid grid-cols-6 items-center gap-4 p-3 rounded-lg hover:bg-slate-700/50 transition-colors"><div className="font-semibold truncate col-span-3 flex items-center gap-3"><Upload size={16} className="text-slate-400"/> {doc.name}</div><div className="text-sm text-slate-400 text-center col-span-1">by {doc.uploadedBy?.name || 'Unknown'}</div><div className="text-sm text-slate-500 text-center col-span-1">{new Date(doc.createdAt).toLocaleDateString()}</div><div className="flex justify-end items-center gap-4"><a href={`http://localhost:9000${doc.fileUrl}`} target="_blank" rel="noreferrer" className="text-teal-400 hover:text-teal-300 p-2 rounded-full hover:bg-slate-700"><Download size={16}/></a>{isAdmin && (<button onClick={() => onDelete(doc._id)} className="text-red-500 hover:text-red-400 p-2 rounded-full hover:bg-slate-700"><Trash2 size={16}/></button>)}</div></div>))}</div>) : <div className="text-center py-10 bg-slate-800 rounded-xl"><h3 className="font-semibold text-xl">No Files Uploaded</h3><p className="text-slate-400 mt-2 text-sm">Upload your first file to share with the team.</p></div>}</div></div>);};
-const ChatPanel = ({ workspaceId, token, currentUser, socket, initialMessages }) => { const [messages, setMessages] = useState(initialMessages); const [newMessage, setNewMessage] = useState(""); const messagesEndRef = useRef(null); const scrollToBottom = () => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }; useEffect(() => { setMessages(initialMessages); }, [initialMessages]); useEffect(() => { if (!socket) return; const handleReceiveMessage = (message) => { setMessages((prevMessages) => [...prevMessages, message]); }; socket.on("receiveMessage", handleReceiveMessage); return () => { socket.off("receiveMessage", handleReceiveMessage); }; }, [socket]); useEffect(() => { scrollToBottom(); }, [messages]); const handleSendMessage = (e) => { e.preventDefault(); if (newMessage.trim() && socket) { socket.emit("sendMessage", { content: newMessage, workspaceId }); setNewMessage(""); }}; return ( <div className="p-8 flex-1 flex flex-col"><h2 className="text-2xl font-bold mb-4">Team Chat</h2><div className="flex-1 bg-slate-800 rounded-xl p-4 overflow-y-auto space-y-4">{messages.map(msg => (<div key={msg._id} className={`flex gap-3 ${currentUser._id === msg.sender._id ? 'justify-end' : ''}`}><div className={`flex items-start gap-3 ${currentUser._id === msg.sender._id ? 'flex-row-reverse' : ''}`}><div className="w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center font-bold flex-shrink-0 text-sm">{msg.sender.name.charAt(0)}</div><div className={`p-3 rounded-lg ${currentUser._id === msg.sender._id ? 'bg-teal-600' : 'bg-slate-700'}`}><p className="font-semibold text-sm">{msg.sender.name}</p><p className="text-white mt-1">{msg.content}</p></div></div></div>))}<div ref={messagesEndRef} /></div><form onSubmit={handleSendMessage} className="flex items-center gap-3 mt-4"><input value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Type a message..." className="flex-1 px-4 py-3 rounded-lg bg-slate-700 border border-transparent focus:border-teal-500 focus:ring-0 transition" /><button type="submit" className="bg-teal-600 p-3 rounded-lg font-semibold hover:bg-teal-500 transition"><Send size={20}/></button></form></div>);};
-const DocumentEditorPanel = ({ documentId, socket, onBack }) => { const quillRef = useRef(); const wrapperRef = useCallback((wrapper) => { if (wrapper == null) return; wrapper.innerHTML = ""; const editor = document.createElement("div"); wrapper.append(editor); const q = new Quill(editor, { theme: "snow", modules: { toolbar: [[{ header: [1, 2, 3, false] }], ['bold', 'italic', 'underline'], ['link'], [{ list: 'ordered' }, { list: 'bullet' }]] } }); quillRef.current = q; }, []); useEffect(() => { if (!socket || !quillRef.current) return; socket.once("load-document", documentData => { quillRef.current.setContents(documentData); quillRef.current.enable(); }); socket.emit("join-document", documentId); const receiveHandler = (delta) => { quillRef.current.updateContents(delta); }; socket.on("receive-changes", receiveHandler); const textChangeHandler = (delta, oldDelta, source) => { if (source !== 'user') return; socket.emit("send-changes", delta, documentId); }; quillRef.current.on('text-change', textChangeHandler); const saveInterval = setInterval(() => { socket.emit("save-document", { documentId, data: quillRef.current.getContents() }); }, 2000); return () => { socket.off("receive-changes", receiveHandler); if (quillRef.current) { quillRef.current.off('text-change', textChangeHandler); } clearInterval(saveInterval); }; }, [socket, documentId]); return ( <div className="p-8 flex-1 flex flex-col"><div className="flex items-center gap-4 mb-4"><button onClick={onBack} className="flex items-center gap-2 text-sm text-slate-400 hover:text-white"><ArrowLeft size={16} /> Back to Documents</button></div><div className="bg-white text-black rounded-lg overflow-hidden flex-1 quill-container"><div ref={wrapperRef} style={{height: "100%"}}></div></div></div>);};
+
+const TaskCard = ({ task, onOpenEdit }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task._id });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 50 : "auto",
+        boxShadow: isDragging ? "0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1)" : ""
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={`bg-slate-700 p-4 rounded-lg mb-3 shadow-md cursor-grab active:cursor-grabbing`}>
+            <div className="flex justify-between items-start">
+                <div className="flex-1 mr-2">
+                    <p className="font-semibold text-white leading-snug">{task.title}</p>
+                    <p className="text-xs text-slate-400 mt-2">{task.assignedTo ? `Assigned to: ${task.assignedTo.name}` : "Unassigned"}</p>
+                </div>
+                <button onClick={() => onOpenEdit(task)} className="text-slate-400 hover:text-white p-1 rounded-full hover:bg-slate-600 transition-colors">
+                    <Edit3 size={14} />
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const DocumentsPanel = ({ documents, onUpload, onDelete, loading, onOpenEditor, onOpenCreate, isAdmin }) => {
+    const handleFileSelect = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            onUpload(file);
+            e.target.value = null;
+        }
+    };
+
+    const textDocs = documents.filter(d => d.isTextDocument);
+    const uploadedFiles = documents.filter(d => !d.isTextDocument);
+
+    return (
+        <div className="p-8 flex-1 space-y-8">
+            <div>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-bold">Collaborative Documents</h2>
+                    {isAdmin && (
+                        <button onClick={onOpenCreate} className="bg-slate-700 px-4 py-2 rounded-lg cursor-pointer flex items-center gap-2 hover:bg-slate-600 transition font-semibold text-sm">
+                            <Plus size={16}/> New Document
+                        </button>
+                    )}
+                </div>
+                {loading ? <div className="flex justify-center py-10"><Loader2 className="animate-spin text-teal-500"/></div> :
+                    textDocs.length > 0 ? (
+                        <div className="bg-slate-800 rounded-xl p-3">
+                            {textDocs.map(doc => (
+                                <div key={doc._id} className="grid grid-cols-6 items-center gap-4 p-3 rounded-lg hover:bg-slate-700/50 transition-colors">
+                                    <button onClick={() => onOpenEditor(doc._id)} className="font-semibold hover:underline truncate col-span-3 flex items-center gap-3 text-left">
+                                        <FileText size={16} className="text-teal-400"/> {doc.name}
+                                    </button>
+                                    <div className="text-sm text-slate-400 text-center col-span-1">by {doc.uploadedBy?.name || 'Unknown'}</div>
+                                    <div className="text-sm text-slate-500 text-center col-span-1">{new Date(doc.createdAt).toLocaleDateString()}</div>
+                                    <div className="flex justify-end items-center">
+                                        {isAdmin && (<button onClick={() => onDelete(doc._id)} className="text-red-500 hover:text-red-400 p-2 rounded-full hover:bg-slate-700"><Trash2 size={16}/></button>)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : <div className="text-center py-10 bg-slate-800 rounded-xl"><h3 className="font-semibold text-xl">No Text Documents</h3><p className="text-slate-400 mt-2 text-sm">Create your first collaborative document.</p></div>
+                }
+            </div>
+            
+            <div>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-bold">Uploaded Files</h2>
+                    {isAdmin && (
+                        <label className="bg-teal-600 px-4 py-2 rounded-lg cursor-pointer flex items-center gap-2 hover:bg-teal-500 transition font-semibold text-sm">
+                            <Upload size={16}/> Upload File
+                            <input type="file" onChange={handleFileSelect} hidden />
+                        </label>
+                    )}
+                </div>
+                 {loading ? <div className="flex justify-center py-10"><Loader2 className="animate-spin text-teal-500"/></div> :
+                    uploadedFiles.length > 0 ? (
+                        <div className="bg-slate-800 rounded-xl p-3">
+                            {uploadedFiles.map(doc => (
+                                <div key={doc._id} className="grid grid-cols-6 items-center gap-4 p-3 rounded-lg hover:bg-slate-700/50 transition-colors">
+                                    <div className="font-semibold truncate col-span-3 flex items-center gap-3"><Upload size={16} className="text-slate-400"/> {doc.name}</div>
+                                    <div className="text-sm text-slate-400 text-center col-span-1">by {doc.uploadedBy?.name || 'Unknown'}</div>
+                                    <div className="text-sm text-slate-500 text-center col-span-1">{new Date(doc.createdAt).toLocaleDateString()}</div>
+                                    <div className="flex justify-end items-center gap-4">
+                                        <a href={`http://localhost:9000${doc.fileUrl}`} target="_blank" rel="noreferrer" className="text-teal-400 hover:text-teal-300 p-2 rounded-full hover:bg-slate-700"><Download size={16}/></a>
+                                        {isAdmin && (<button onClick={() => onDelete(doc._id)} className="text-red-500 hover:text-red-400 p-2 rounded-full hover:bg-slate-700"><Trash2 size={16}/></button>)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : <div className="text-center py-10 bg-slate-800 rounded-xl"><h3 className="font-semibold text-xl">No Files Uploaded</h3><p className="text-slate-400 mt-2 text-sm">Upload your first file to share with the team.</p></div>
+                }
+            </div>
+        </div>
+    );
+};
+
+const ChatPanel = ({ workspaceId, token, currentUser, socket, initialMessages }) => {
+  const [messages, setMessages] = useState(() => initialMessages || []);
+  const [newMessage, setNewMessage] = useState("");
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    setMessages(initialMessages || []);
+  }, [initialMessages]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleReceiveMessage = (message) => {
+      // defensive: ignore falsy messages
+      if (!message) return;
+      console.log("socket receiveMessage:", message);
+      setMessages(prev => [...prev, message]);
+    };
+
+    socket.on("receiveMessage", handleReceiveMessage);
+    return () => {
+      socket.off("receiveMessage", handleReceiveMessage);
+    };
+  }, [socket]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    if (newMessage.trim() && socket) {
+      socket.emit("sendMessage", { content: newMessage, workspaceId });
+      setNewMessage("");
+    }
+  };
+
+  return (
+    <div className="p-8 flex-1 flex flex-col">
+      <h2 className="text-2xl font-bold mb-4">Team Chat</h2>
+      <div className="flex-1 bg-slate-800 rounded-xl p-4 overflow-y-auto space-y-4">
+        {(messages || []).filter(Boolean).map((msg, idx) => {
+          // safe accessors & fallbacks
+          const id = msg._id ?? `msg-fallback-${idx}`;
+          const sender = msg.sender ?? { _id: null, name: "Unknown" };
+          const isCurrentUser = !!(currentUser && (currentUser._id === sender._id || currentUser._id === sender.id));
+
+          const initial = (sender.name && typeof sender.name === "string") ? sender.name.charAt(0) : "?";
+          const displayName = sender.name || "Unknown";
+
+          return (
+            <div key={id} className={`flex gap-3 ${isCurrentUser ? 'justify-end' : ''}`}>
+              <div className={`flex items-start gap-3 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
+                <div className="w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center font-bold flex-shrink-0 text-sm">
+                  {initial}
+                </div>
+                <div className={`p-3 rounded-lg ${isCurrentUser ? 'bg-teal-600' : 'bg-slate-700'}`}>
+                  <p className="font-semibold text-sm">{displayName}</p>
+                  <p className="text-white mt-1">{msg.content}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <form onSubmit={handleSendMessage} className="flex items-center gap-3 mt-4">
+        <input
+          value={newMessage}
+          onChange={e => setNewMessage(e.target.value)}
+          placeholder="Type a message..."
+          className="flex-1 px-4 py-3 rounded-lg bg-slate-700 border border-transparent focus:border-teal-500 focus:ring-0 transition"
+        />
+        <button type="submit" className="bg-teal-600 p-3 rounded-lg font-semibold hover:bg-teal-500 transition">
+          <Send size={20}/>
+        </button>
+      </form>
+    </div>
+  );
+};
+
+
+const DocumentEditorPanel = ({ documentId, socket, onBack }) => {
+    const quillRef = useRef();
+    const wrapperRef = useCallback((wrapper) => {
+        if (wrapper == null) return;
+        wrapper.innerHTML = "";
+        const editor = document.createElement("div");
+        wrapper.append(editor);
+        const q = new Quill(editor, {
+            theme: "snow",
+            modules: { toolbar: [[{ header: [1, 2, 3, false] }], ['bold', 'italic', 'underline'], ['link'], [{ list: 'ordered' }, { list: 'bullet' }]] }
+        });
+        quillRef.current = q;
+    }, []);
+
+    useEffect(() => {
+        if (!socket || !quillRef.current) return;
+        
+        socket.once("load-document", documentData => {
+            quillRef.current.setContents(documentData);
+            quillRef.current.enable();
+        });
+
+        socket.emit("join-document", documentId);
+
+        const receiveHandler = (delta) => { quillRef.current.updateContents(delta); };
+        socket.on("receive-changes", receiveHandler);
+
+        const textChangeHandler = (delta, oldDelta, source) => { if (source !== 'user') return; socket.emit("send-changes", delta, documentId); };
+        quillRef.current.on('text-change', textChangeHandler);
+
+        const saveInterval = setInterval(() => {
+            socket.emit("save-document", { documentId, data: quillRef.current.getContents() });
+        }, 2000);
+
+        return () => {
+            socket.off("receive-changes", receiveHandler);
+            if (quillRef.current) { quillRef.current.off('text-change', textChangeHandler); }
+            clearInterval(saveInterval);
+        };
+    }, [socket, documentId]);
+    
+    return (
+        <div className="p-8 flex-1 flex flex-col">
+            <div className="flex items-center gap-4 mb-4">
+                 <button onClick={onBack} className="flex items-center gap-2 text-sm text-slate-400 hover:text-white"><ArrowLeft size={16} /> Back to Documents</button>
+            </div>
+            <div className="bg-white text-black rounded-lg overflow-hidden flex-1 quill-container">
+                 <div ref={wrapperRef} style={{height: "100%"}}></div>
+            </div>
+        </div>
+    );
+};
+
 
 // --- Main Workspace Page Component ---
 
@@ -133,6 +654,7 @@ const WorkspacePage = () => {
   const createTextDocument = async (title) => { try { const res = await axios.post(`${API_BASE_URL}/documents/text`, { title, workspaceId }, { headers: { Authorization: `Bearer ${token}` }}); if(socket) socket.emit("docUpdated", {doc: res.data, workspaceId}); setActiveDocument(res.data._id); closeModal(); } catch (err) { alert("Failed to create document."); }};
   const deleteDocument = (docId) => { openModal("confirm", { title: "Delete Document?", message: "Are you sure you want to permanently delete this file?", onConfirm: async () => { try { await axios.delete(`${API_BASE_URL}/documents/${docId}`, { headers: { Authorization: `Bearer ${token}` } }); if(socket) socket.emit("docUpdated", {docId: docId, deleted: true, workspaceId}); closeModal(); } catch (err) { alert("Failed to delete document"); } } }); };
   const deleteWorkspace = () => { openModal("confirm", { title: "Delete Workspace?", message: "This action is irreversible and will delete all associated tasks, documents, and chat messages.", onConfirm: async () => { try { await axios.delete(`${API_BASE_URL}/workspaces/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }); navigate(`/dashboard/${currentUser?._id}`); } catch (err) { alert("Failed to delete workspace."); } } }); };
+  const handleSendHelp = async (message) => { try { await axios.post(`${API_BASE_URL}/help/${workspaceId}`, { message }, { headers: { Authorization: `Bearer ${token}` } }); closeModal(); openModal("success", { title: "Request Sent", message: "Your help request has been sent to the workspace admin." });} catch (err) { alert("Failed to send help request."); }};
   const findContainer = (id) => { if (columns && columns[id]) return id; return columns ? Object.keys(columns).find((key) => columns[key].items.find((item) => item._id === id)) : null; };
   const handleDragEnd = (event) => { const { active, over } = event; if (!over) return; const activeId = active.id; const overId = over.id; const activeContainer = findContainer(activeId); const overContainer = findContainer(overId) || (columns[overId] ? overId : null); if (!activeContainer || !overContainer || active.id === over.id) return; const originalTasks = [...tasks]; if (activeContainer === overContainer) { const taskList = columns[activeContainer].items; const oldIndex = taskList.findIndex(t => t._id === activeId); const newIndex = taskList.findIndex(t => t._id === overId); if (oldIndex === -1 || newIndex === -1) return; const reorderedTasksInColumn = arrayMove(taskList, oldIndex, newIndex); const otherTasks = tasks.filter(t => t.status !== activeContainer); setTasks([...otherTasks, ...reorderedTasksInColumn]); } else { const updatedTask = tasks.find(t => t._id === activeId); updatedTask.status = overContainer; updateTask(activeId, { status: overContainer }); }};
   const openModal = (type, props = {}) => setModal({ type, props });
@@ -180,6 +702,8 @@ const WorkspacePage = () => {
       {modal.type === "settings" && <SettingsModal close={closeModal} workspace={workspace} onUpdate={updateWorkspace} onDeleteWorkspace={deleteWorkspace} isAdmin={isAdmin} />}
       {modal.type === "confirm" && <ConfirmModal close={closeModal} {...modal.props} />}
       {modal.type === "createDocument" && <CreateDocumentModal close={closeModal} onCreate={createTextDocument} />}
+      {modal.type === "help" && <HelpModal close={closeModal} onSend={handleSendHelp} />}
+      {modal.type === "success" && <SuccessModal close={closeModal} {...modal.props} />}
 
       <aside className="w-64 bg-slate-800 p-6 hidden md:flex flex-col border-r border-slate-700">
         <Link to={`/Dashboard/${currentUser?._id}`} className="flex items-center gap-2 text-sm text-slate-400 hover:text-white mb-6"><ArrowLeft size={16} /> Back to Dashboard</Link>
@@ -192,7 +716,8 @@ const WorkspacePage = () => {
             <button onClick={() => {setActiveTab("docs"); setActiveDocument(null);}} className={`flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${activeTab === 'docs' ? 'bg-teal-500/20 font-semibold text-white' : 'hover:bg-slate-700 text-slate-300'}`}><FileText size={18} /> Documents</button>
             <button onClick={() => {setActiveTab("chat"); setActiveDocument(null);}} className={`flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${activeTab === 'chat' ? 'bg-teal-500/20 font-semibold text-white' : 'hover:bg-slate-700 text-slate-300'}`}><MessageSquare size={18} /> Chat</button>
             <button onClick={() => openModal("members")} className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700 transition-colors text-slate-300"><Users size={18} /> Members</button>
-            {isAdmin && <button onClick={() => openModal("settings")} className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700 transition-colors text-slate-300"><Settings size={18} /> Settings</button>}
+            {isAdmin && (<button onClick={() => openModal("settings")} className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700 transition-colors text-slate-300"><Settings size={18} /> Settings</button>)}
+            {!isAdmin && (<button onClick={() => openModal("help")} className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700 transition-colors text-slate-300"><LifeBuoy size={18} /> Help & Support</button>)}
         </nav>
       </aside>
 

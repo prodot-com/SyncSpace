@@ -9,6 +9,8 @@ import documentRoutes from './routes/document.routes.js'
 import chatRoutes from './routes/chat.routes.js'
 import commentRoutes from './routes/comment.routes.js'
 import adminRoutes from './routes/admin.routes.js'
+import helpRoutes from './routes/help.routes.js'
+import notificationRoutes from './routes/notification.route.js'
 
 const app = express();
 
@@ -34,5 +36,7 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/comments', commentRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/help', helpRoutes)
+app.use('/api/notifications', notificationRoutes);
 
 export { app };
