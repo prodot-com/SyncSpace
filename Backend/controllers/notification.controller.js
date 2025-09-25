@@ -1,8 +1,6 @@
 import { Notification } from '../models/Notification.model.js';
 
-// @desc    Get all notifications for the logged-in user
-// @route   GET /api/notifications
-// @access  Private
+
 export const getNotifications = async (req, res) => {
     try {
         const notifications = await Notification.find({ user: req.user._id })
@@ -14,9 +12,7 @@ export const getNotifications = async (req, res) => {
     }
 };
 
-// @desc    Mark a notification as read
-// @route   PUT /api/notifications/:id/read
-// @access  Private
+
 export const markAsRead = async (req, res) => {
     try {
         const notification = await Notification.findOneAndUpdate(

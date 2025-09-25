@@ -1,12 +1,12 @@
 import { Team } from "../Models/Team.models.js";
 import { User } from "../models/User.model.js";
 
-// Create a new team
+
 export const createTeam = async (req, res) => {
   try {
     const { name } = req.body;
 
-    // Create team with logged-in user as the first member
+    
     const team = await Team.create({
       name,
       members: [req.user._id],
@@ -18,7 +18,7 @@ export const createTeam = async (req, res) => {
   }
 };
 
-// Add a member to an existing team
+
 export const addMember = async (req, res) => {
   try {
     const { teamId } = req.params;
@@ -34,7 +34,7 @@ export const addMember = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Only add if not already a member
+   
     if (!team.members.includes(userId)) {
       team.members.push(userId);
       await team.save();

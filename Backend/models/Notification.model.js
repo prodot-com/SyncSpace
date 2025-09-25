@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 
 const notificationSchema = new mongoose.Schema({
-    user: { // The user who RECEIVES the notification
+    user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     },
-    sender: { // The user who TRIGGERED the notification
+    sender: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     },
@@ -13,7 +13,7 @@ const notificationSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    link: { // A URL to the relevant item (e.g., a task or workspace)
+    link: { 
         type: String,
     },
     read: {

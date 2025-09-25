@@ -1,15 +1,13 @@
 import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs"; // ✅ needed for password hashing
+import bcrypt from "bcryptjs";
 import { User } from "../models/User.model.js";
 
-// ✅ Utility to generate JWT
+
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
-// --------------------
-// Register User
-// --------------------
+
 const registerUser = async (req, res) => {
   const { name, email, password, role, skills, portfolio, rate } = req.body;
   try {
@@ -28,9 +26,7 @@ const registerUser = async (req, res) => {
   }
 };
 
-// --------------------
-// Login User
-// --------------------
+
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -51,9 +47,7 @@ const loginUser = async (req, res) => {
   }
 };
 
-// --------------------
-// Get Profile
-// --------------------
+
 const getProfile = async (req, res) => {
   try {
     if (!req.user) {
@@ -65,9 +59,7 @@ const getProfile = async (req, res) => {
   }
 };
 
-// --------------------
-// Update Profile
-// --------------------
+
 const updateProfile = async (req, res) => {
   try {
     if (!req.user) {
@@ -79,7 +71,7 @@ const updateProfile = async (req, res) => {
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // ✅ Update fields
+    
     user.name = name || user.name;
     user.email = email || user.email;
     user.skills = skills || user.skills;
@@ -91,17 +83,14 @@ const updateProfile = async (req, res) => {
     res.json({
       message: "Profile updated successfully",
       user,
-      token: generateToken(user._id), // refresh token if email changed
+      token: generateToken(user._id),
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// --------------------
-// Change Password
-// --------------------
-// Change Password (fixed)
+
 const changePassword = async (req, res) => {
   try {
     if (!req.user) {
@@ -119,13 +108,13 @@ const changePassword = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Check old password
+    
     const isMatch = await user.matchPassword(currentPassword);
     if (!isMatch) {
       return res.status(400).json({ message: "Current password is incorrect" });
     }
 
-    // ✅ Just set new password (pre-save hook will hash it)
+
     user.password = newPassword;
 
     await user.save();

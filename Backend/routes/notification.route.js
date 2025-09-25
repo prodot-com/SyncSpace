@@ -4,7 +4,7 @@ import { getNotifications, markAsRead } from '../controllers/notification.contro
 
 const router = express.Router();
 
-// All routes are protected
+
 router.use(protect);
 
 router.get('/', getNotifications);

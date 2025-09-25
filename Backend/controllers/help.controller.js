@@ -19,12 +19,12 @@ export const createHelpRequest = async (req, res) => {
             message,
         });
 
-        // --- NOTIFICATION LOGIC ---
+        
         const notification = await Notification.create({
-            user: workspace.createdBy, // Notify the admin
+            user: workspace.createdBy, 
             sender: userId,
             message: `New help request from ${req.user.name} in workspace "${workspace.name}".`,
-            link: `/admin` // Link to the admin page where they can see requests
+            link: `/admin`
         });
         const populatedNotification = await notification.populate('sender', 'name');
 
@@ -35,7 +35,7 @@ export const createHelpRequest = async (req, res) => {
         if (adminSocketId) {
             io.to(adminSocketId).emit('new-notification', populatedNotification);
         }
-        // --- END NOTIFICATION LOGIC ---
+        
 
         res.status(201).json(helpRequest);
     } catch (err) {
@@ -43,17 +43,17 @@ export const createHelpRequest = async (req, res) => {
     }
 };
 
-// ... existing getHelpRequests function ...
+
 export const getHelpRequests = async (req, res) => {
-    try {
-        const { workspaceId } = req.params;
-        const workspace = await Workspace.findById(workspaceId);
-        if (req.user._id.toString() !== workspace.createdBy.toString()) {
-           return res.status(403).json({ message: "Not authorized" });
-        }
-        const requests = await HelpRequest.find({ workspace: workspaceId }).populate("user", "name email");
-        res.json(requests);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
+     try {
+        const { workspaceId } = req.params;
+        const workspace = await Workspace.findById(workspaceId);
+         if (req.user._id.toString() !== workspace.createdBy.toString()) {
+          return res.status(403).json({ message: "Not authorized" });
+             }
+            const requests = await HelpRequest.find({ workspace: workspaceId }).populate("user", "name email");
+            res.json(requests);
+        } catch (err) {
+            res.status(500).json({ message: err.message });
+}
 };

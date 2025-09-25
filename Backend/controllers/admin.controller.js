@@ -3,7 +3,7 @@ import { Workspace } from '../models/Workspace.model.js';
 import { Task } from '../models/Task.model.js';
 import { HelpRequest } from '../models/HelpRequest.model.js';
 
-// Middleware to check if user is an admin
+
 export const checkAdmin = (req, res, next) => {
     if (req.user && req.user.role === 'Admin') {
         next();
@@ -12,9 +12,7 @@ export const checkAdmin = (req, res, next) => {
     }
 };
 
-// @desc    Get application-wide statistics
-// @route   GET /api/admin/stats
-// @access  Admin
+
 export const getAppStats = async (req, res) => {
     try {
         const userCount = await User.countDocuments();
@@ -31,9 +29,7 @@ export const getAppStats = async (req, res) => {
     }
 };
 
-// @desc    Get all users
-// @route   GET /api/admin/users
-// @access  Admin
+
 export const getAllUsers = async (req, res) => {
     try {
         const users = await User.find({}).select('-password');
@@ -43,9 +39,7 @@ export const getAllUsers = async (req, res) => {
     }
 };
 
-// @desc    Delete a user
-// @route   DELETE /api/admin/users/:id
-// @access  Admin
+
 export const deleteUser = async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
@@ -63,9 +57,7 @@ export const deleteUser = async (req, res) => {
     }
 };
 
-// @desc    Get all workspaces
-// @route   GET /api/admin/workspaces
-// @access  Admin
+
 export const getAllWorkspaces = async (req, res) => {
     try {
         const workspaces = await Workspace.find({}).populate('createdBy', 'name email').populate('members', 'name');
@@ -75,9 +67,7 @@ export const getAllWorkspaces = async (req, res) => {
     }
 };
 
-// @desc    Update a workspace
-// @route   PUT /api/admin/workspaces/:id
-// @access  Admin
+
 export const updateWorkspace = async(req, res) => {
     try {
         const workspace = await Workspace.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('createdBy', 'name email').populate('members', 'name');
@@ -88,9 +78,7 @@ export const updateWorkspace = async(req, res) => {
     }
 };
 
-// @desc    Delete a workspace
-// @route   DELETE /api/admin/workspaces/:id
-// @access  Admin
+
 export const deleteWorkspace = async (req, res) => {
     try {
         const workspace = await Workspace.findById(req.params.id);
@@ -107,9 +95,7 @@ export const deleteWorkspace = async (req, res) => {
     }
 };
 
-// @desc    Get all tasks from all workspaces
-// @route   GET /api/admin/tasks
-// @access  Admin
+
 export const getAllTasks = async (req, res) => {
     try {
         const tasks = await Task.find({}).populate('workspace', 'name').populate('assignedTo', 'name');
@@ -119,9 +105,7 @@ export const getAllTasks = async (req, res) => {
     }
 };
 
-// @desc    Delete a task
-// @route   DELETE /api/admin/tasks/:id
-// @access  Admin
+
 export const deleteTask = async (req, res) => {
     try {
         const task = await Task.findById(req.params.id);
@@ -136,9 +120,7 @@ export const deleteTask = async (req, res) => {
     }
 };
 
-// @desc    Update a task as an Admin
-// @route   PUT /api/admin/tasks/:id
-// @access  Admin
+
 export const updateTask = async (req, res) => {
     try {
         const task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true })
@@ -181,9 +163,7 @@ export const getAllHelpRequests = async (req, res) => {
     }
 };
 
-// @desc    Delete (resolve) a help request
-// @route   DELETE /api/admin/help-requests/:id
-// @access  Admin
+
 export const resolveHelpRequest = async (req, res) => {
     try {
         const request = await HelpRequest.findById(req.params.id);

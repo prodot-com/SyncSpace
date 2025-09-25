@@ -4,7 +4,7 @@ import { Task } from "../models/Task.model.js";
 
 const router = express.Router();
 
-// --- Get all comments for a task ---
+
 const getAllComments =  async (req, res) => {
     const { taskId } = req.params;
     try {
@@ -19,7 +19,7 @@ const getAllComments =  async (req, res) => {
     }
 };
 
-// --- Add a comment to a task ---
+
 const addComment =  async (req, res) => {
     const { taskId } = req.params;
     const { content } = req.body;

@@ -1,7 +1,7 @@
 import { Workspace } from "../models/Workspace.model.js";
 import { User } from "../models/User.model.js";
 
-// ✅ Create Workspace
+
 const createWorkspace = async (req, res) => {
   try {
     const { name, description, members } = req.body;
@@ -20,7 +20,7 @@ const createWorkspace = async (req, res) => {
   }
 };
 
-// ✅ Get all Workspaces for logged-in user
+
 const getWorkspaces = async (req, res) => {
   try {
     const workspaces = await Workspace.find({ members: req.user._id })
@@ -36,7 +36,7 @@ const getWorkspaces = async (req, res) => {
 
 
 
-// ✅ Get single Workspace by ID
+
 const getWorkspaceById = async (req, res) => {
   try {
     const workspace = await Workspace.findById(req.params.id)
@@ -51,7 +51,7 @@ const getWorkspaceById = async (req, res) => {
   }
 };
 
-// ✅ Update Workspace
+
 const updateWorkspace = async (req, res) => {
   try {
     const workspace = await Workspace.findById(req.params.id);
@@ -73,7 +73,7 @@ const updateWorkspace = async (req, res) => {
   }
 };
 
-// ✅ Delete Workspace
+
 const deleteWorkspace = async (req, res) => {
   try {
     const workspace = await Workspace.findById(req.params.id);
@@ -90,7 +90,6 @@ const deleteWorkspace = async (req, res) => {
   }
 };
 
-// ✅ Invite Member by Email
 const inviteMember = async (req, res) => {
   try {
     const { email } = req.body;
@@ -117,7 +116,7 @@ const inviteMember = async (req, res) => {
   }
 };
 
-// ✅ Remove Member
+
 const removeMember = async (req, res) => {
   try {
     const { id, userId } = req.params;

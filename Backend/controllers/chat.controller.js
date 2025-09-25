@@ -1,8 +1,6 @@
 import { Chat } from "../models/Chat.model.js";
 
-// @desc    Get all messages for a workspace
-// @route   GET /api/chat/:workspaceId
-// @access  Private
+
 export const getMessages = async (req, res) => {
   try {
     const { workspaceId } = req.params;
@@ -16,11 +14,7 @@ export const getMessages = async (req, res) => {
   }
 };
 
-// This controller is for API, but message creation will be handled via Sockets.
-// However, it's good practice to have an API endpoint as well.
-// @desc    Create a new message
-// @route   POST /api/chat/:workspaceId
-// @access  Private
+
 export const createMessage = async (req, res) => {
     try {
         const { workspaceId } = req.params;

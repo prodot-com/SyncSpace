@@ -54,7 +54,7 @@ export const createTextDocument = async (req, res) => {
       workspace: workspaceId,
       uploadedBy: req.user._id,
       isTextDocument: true,
-      data: { ops: [{ insert: '\n' }] } // Default Quill blank
+      data: { ops: [{ insert: '\n' }] }
     });
 
     res.status(201).json(document);

@@ -1,9 +1,7 @@
 import { Team } from "../Models/Team.models.js";
 import { User } from "../models/User.model.js";
 
-// @desc    Create a new team
-// @route   POST /api/teams
-// @access  Private
+
 const createTeam = async (req, res) => {
   try {
     const { name, description, members } = req.body;
@@ -15,7 +13,7 @@ const createTeam = async (req, res) => {
     const team = new Team({
       name,
       description,
-      members: members || [req.user._id], // default: creator is first member
+      members: members || [req.user._id], 
     });
 
     await team.save();
@@ -25,9 +23,7 @@ const createTeam = async (req, res) => {
   }
 };
 
-// @desc    Get all teams
-// @route   GET /api/teams
-// @access  Private
+
 const getTeams = async (req, res) => {
   try {
     const teams = await Team.find().populate("members", "-password");
@@ -37,9 +33,7 @@ const getTeams = async (req, res) => {
   }
 };
 
-// @desc    Get single team by ID
-// @route   GET /api/teams/:id
-// @access  Private
+
 const getTeamById = async (req, res) => {
   try {
     const team = await Team.findById(req.params.id).populate("members", "-password");
@@ -50,9 +44,7 @@ const getTeamById = async (req, res) => {
   }
 };
 
-// @desc    Update a team
-// @route   PUT /api/teams/:id
-// @access  Private
+
 const updateTeam = async (req, res) => {
   try {
     const { name, description, members } = req.body;
@@ -71,9 +63,7 @@ const updateTeam = async (req, res) => {
   }
 };
 
-// @desc    Delete a team
-// @route   DELETE /api/teams/:id
-// @access  Private
+
 const deleteTeam = async (req, res) => {
   try {
     const team = await Team.findById(req.params.id);
@@ -86,9 +76,7 @@ const deleteTeam = async (req, res) => {
   }
 };
 
-// @desc    Add member to team
-// @route   POST /api/teams/:id/members
-// @access  Private
+
 const addMember = async (req, res) => {
   try {
     const { userId } = req.body;
@@ -111,9 +99,7 @@ const addMember = async (req, res) => {
   }
 };
 
-// @desc    Remove member from team
-// @route   DELETE /api/teams/:id/members/:userId
-// @access  Private
+
 const removeMember = async (req, res) => {
   try {
     const { id, userId } = req.params;

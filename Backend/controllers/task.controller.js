@@ -3,7 +3,7 @@ import { Notification } from "../models/Notification.model.js";
 import { Workspace } from "../models/Workspace.model.js";
 
 const notifyUser = async (req, userToNotifyId, message, link) => {
-  if (userToNotifyId.toString() === req.user._id.toString()) return; // Don't notify yourself
+  if (userToNotifyId.toString() === req.user._id.toString()) return;
 
   const notification = await Notification.create({
     user: userToNotifyId,
@@ -23,19 +23,18 @@ const notifyUser = async (req, userToNotifyId, message, link) => {
   }
 };
 
-// ✅ Create Task
+
 const createTask = async (req, res) => {
   try {
     const { title, description, status, workspace, assignedTo, dueDate } = req.body;
 
-    // Make sure workspace exists (so we can fetch its name later for notification)
     const workspaceDoc = await Workspace.findById(workspace);
     if (!workspaceDoc) return res.status(404).json({ message: "Workspace not found" });
 
     const task = new Task({ title, description, status, workspace, assignedTo, dueDate });
     await task.save();
 
-    // --- NOTIFICATION LOGIC ---
+  
     if (assignedTo) {
       await notifyUser(
         req,
@@ -44,7 +43,7 @@ const createTask = async (req, res) => {
         `/workspace/${workspace}/tasks`
       );
     }
-    // --- END NOTIFICATION LOGIC ---
+    
 
     const populatedTask = await task.populate("assignedTo", "name email");
     res.status(201).json(populatedTask);
@@ -53,7 +52,7 @@ const createTask = async (req, res) => {
   }
 };
 
-// ✅ Get Tasks by Workspace
+
 const getTasks = async (req, res) => {
   try {
     const tasks = await Task.find({ workspace: req.params.workspaceId }).populate("assignedTo", "name email");
@@ -63,7 +62,7 @@ const getTasks = async (req, res) => {
   }
 };
 
-// ✅ Update Task
+
 // const updateTask = async (req, res) => {
 //   try {
 //     const task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -84,8 +83,7 @@ const updateTask = async (req, res) => {
       "name email"
     );
 
-    // --- NOTIFICATION LOGIC ---
-    // 1. If status changed -> notify the assigned user
+
     if (
       updatedTask.assignedTo &&
       req.body.status &&
@@ -99,7 +97,7 @@ const updateTask = async (req, res) => {
       );
     }
 
-    // 2. If assignedTo changed -> notify the new assignee
+    
     if (
       updatedTask.assignedTo &&
       oldTask.assignedTo?.toString() !== updatedTask.assignedTo._id.toString()
@@ -111,7 +109,7 @@ const updateTask = async (req, res) => {
         `/workspace/${updatedTask.workspace}/tasks`
       );
     }
-    // --- END NOTIFICATION LOGIC ---
+    
 
     res.json(updatedTask);
   } catch (err) {
@@ -120,7 +118,7 @@ const updateTask = async (req, res) => {
 };
 
 
-// ✅ Delete Task
+
 const deleteTask = async (req, res) => {
   try {
     const task = await Task.findByIdAndDelete(req.params.id);
