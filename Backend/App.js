@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import authRoutes from "./routes/auth.routes.js"
@@ -11,6 +12,8 @@ import commentRoutes from './routes/comment.routes.js'
 import adminRoutes from './routes/admin.routes.js'
 import helpRoutes from './routes/help.routes.js'
 import notificationRoutes from './routes/notification.route.js'
+
+const frontend_url = process.env.FRONTEND_URL
 
 const app = express();
 

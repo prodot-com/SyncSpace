@@ -8,6 +8,7 @@ import { Chat } from './models/Chat.model.js';
 import { User } from './models/User.model.js';
 
 const PORT = process.env.PORT || 9000;
+const frontend_url = process.env.FRONTEND_URL
 
 const server = app.listen(PORT, () => {
   console.log(`App + Socket.IO listening at port ${PORT}`);
