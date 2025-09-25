@@ -26,9 +26,9 @@ const FormInput = ({ label, name, type = "text", placeholder, value, onChange, r
 
 const SignUpForm = ({ signUpData, handleSignUpChange, handleSignUp, setModalContent, alert }) => (
   <div>
-    <h2 className="text-3xl font-bold text-center text-white mb-2">Get Started with SyncSpace</h2>
-    <p className="text-center text-slate-400 mb-6">Create an account to begin collaborating.</p>
-    {alert && <p className="text-center my-3 text-slate-100 bg-slate-700/50 py-2 rounded-md">{alert}</p>}
+    <h2 className="text-2xl sm:text-3xl font-bold text-center text-white mb-2">Get Started with SyncSpace</h2>
+    <p className="text-center text-slate-400 mb-6 text-sm sm:text-base">Create an account to begin collaborating.</p>
+    {alert && <p className="text-center my-3 text-slate-100 bg-slate-700/50 py-2 rounded-md text-sm">{alert}</p>}
     <form className="space-y-4" onSubmit={handleSignUp}>
       <FormInput label="Full Name" name="name" placeholder="John Doe" value={signUpData.name} onChange={handleSignUpChange} />
       <FormInput label="Email Address" name="email" type="email" placeholder="you@example.com" value={signUpData.email} onChange={handleSignUpChange} />
@@ -62,9 +62,9 @@ const SignUpForm = ({ signUpData, handleSignUpChange, handleSignUp, setModalCont
 
 const SignInForm = ({ signInData, handleSignInChange, handleSignIn, setModalContent, alert }) => (
   <div>
-    <h2 className="text-3xl font-bold text-center text-white mb-2">Welcome Back</h2>
-    <p className="text-center text-slate-400 mb-6">Sign in to access your workspaces.</p>
-    {alert && <p className="text-center my-3 text-slate-100 bg-slate-700/50 py-2 rounded-md">{alert}</p>}
+    <h2 className="text-2xl sm:text-3xl font-bold text-center text-white mb-2">Welcome Back</h2>
+    <p className="text-center text-slate-400 mb-6 text-sm sm:text-base">Sign in to access your workspaces.</p>
+    {alert && <p className="text-center my-3 text-slate-100 bg-slate-700/50 py-2 rounded-md text-sm">{alert}</p>}
     <form className="space-y-4" onSubmit={handleSignIn}>
       <FormInput label="Email Address" name="email" type="email" placeholder="you@example.com" value={signInData.email} onChange={handleSignInChange} />
       <FormInput label="Password" name="password" type="password" placeholder="••••••••" value={signInData.password} onChange={handleSignInChange} />
@@ -84,7 +84,7 @@ const SignInForm = ({ signInData, handleSignInChange, handleSignIn, setModalCont
 
 const AuthModal = ({ closeModal, modalContent, ...props }) => (
   <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex justify-center items-center p-4 font-sans animate-fade-in">
-    <div className="bg-slate-800 rounded-2xl shadow-2xl shadow-black/50 p-8 w-full max-w-md relative animate-slide-up">
+    <div className="bg-slate-800 rounded-2xl shadow-2xl shadow-black/50 p-6 sm:p-8 w-full max-w-md relative animate-slide-up">
       <button onClick={closeModal} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-transform hover:rotate-90 duration-300">
         <X size={24} />
       </button>
@@ -95,15 +95,15 @@ const AuthModal = ({ closeModal, modalContent, ...props }) => (
 
 
 const Header = ({ onSignIn, onSignUp }) => (
-    <header className="fixed top-5 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl bg-slate-800/60 flex justify-between items-center px-6 sm:px-10 py-4 rounded-2xl z-40 backdrop-blur-md shadow-2xl shadow-black/30 border border-slate-700">
-        <h1 className=" text-2xl sm:text-3xl font-bold text-white cursor-pointer" onClick={() => window.location.reload()}>
+    <header className="fixed top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl bg-slate-800/60 flex justify-between items-center px-4 sm:px-8 py-3 rounded-2xl z-40 backdrop-blur-md shadow-2xl shadow-black/30 border border-slate-700">
+        <h1 className="text-xl sm:text-2xl font-bold text-white cursor-pointer" onClick={() => window.location.reload()}>
             SyncSpace
         </h1>
         <nav className="flex items-center gap-2 sm:gap-4">
-            <button onClick={onSignIn} className="cursor-pointer text-slate-300 hover:text-white transition font-medium px-3 py-2 rounded-md">
+            <button onClick={onSignIn} className="cursor-pointer text-slate-300 hover:text-white transition font-medium px-3 py-2 rounded-md text-sm sm:text-base">
                 Sign In
             </button>
-            <button onClick={onSignUp} className="cursor-pointer bg-teal-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-teal-500 transition shadow-md shadow-teal-900/50">
+            <button onClick={onSignUp} className="cursor-pointer bg-teal-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-teal-500 transition shadow-md shadow-teal-900/50 text-sm sm:text-base">
                 Sign Up
             </button>
         </nav>
@@ -125,7 +125,7 @@ const FeatureItem = ({ icon, title, children }) => (
 
 
 const App = () => {
-  const navigate = useNavigate(); // Kept for logic, but navigation is simulated
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState('signUp');
   const [alert, setAlert] = useState(null);
@@ -186,11 +186,11 @@ const App = () => {
     setIsModalOpen(false);
   };
 
- 
+  
   useEffect(() => {
     const handleEsc = (event) => {
        if (event.key === 'Escape') {
-        closeModal();
+         closeModal();
        }
     };
     window.addEventListener('keydown', handleEsc);
@@ -216,8 +216,8 @@ const App = () => {
       <Header onSignIn={() => openModal('signIn')} onSignUp={() => openModal('signUp')} />
 
       
-      <main className="w-full pt-40 sm:pt-48 flex flex-col items-center">
-        <section className="min-h-[calc(100vh-12rem)] w-full relative flex flex-col justify-center items-center px-4 sm:px-6">
+      <main className="w-full pt-28 sm:pt-32 md:pt-40 flex flex-col items-center">
+        <section className="min-h-[calc(100vh-10rem)] w-full relative flex flex-col justify-center items-center px-4 sm:px-6">
           <div
             className="absolute inset-0 z-0 opacity-80"
             style={{
@@ -228,16 +228,16 @@ const App = () => {
             }}
           />
           <div className="relative z-10 flex flex-col justify-center items-center text-center">
-            <h1 className="font-bold leading-tight text-5xl sm:text-7xl max-w-4xl tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400">
+            <h1 className="font-bold leading-tight text-4xl sm:text-6xl md:text-7xl max-w-4xl tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400">
               Where Teamwork Flows, Instantly.
             </h1>
-            <p className="mt-6 text-base sm:text-xl text-slate-300 max-w-3xl">
+            <p className="mt-6 text-base sm:text-lg md:text-xl text-slate-300 max-w-3xl">
               Manage projects, share documents, and communicate seamlessly in one unified hub.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mt-10">
               <button
                 onClick={() => document.getElementById("features").scrollIntoView({ behavior: "smooth" })}
-                className="px-6 py-3 bg-teal-600 text-white rounded-lg text-lg font-semibold shadow-lg shadow-teal-900/50 hover:bg-teal-500 hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                className="px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold shadow-lg shadow-teal-900/50 hover:bg-teal-500 hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-base sm:text-lg"
               >
                 Explore Features
               </button>
@@ -246,12 +246,12 @@ const App = () => {
         </section>
 
         
-        <section id="features" className="p-6 sm:p-10 w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <section id="features" className="p-4 sm:p-10 w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="order-2 lg:order-1">
-            <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white">
               Everything Your Team Needs, in One Place.
             </h2>
-            <p className="mt-6 text-lg text-slate-300 leading-relaxed">
+            <p className="mt-6 text-base sm:text-lg text-slate-300 leading-relaxed">
               SyncSpace is designed to be a fully-featured collaborative hub where{' '}
               <span className="text-teal-400 font-semibold">managers</span> orchestrate tasks and{' '}
               <span className="text-teal-400 font-semibold">team members</span> collaborate effortlessly.
@@ -269,12 +269,12 @@ const App = () => {
             </div>
             <div className="flex flex-col sm:flex-row gap-4 mt-8 sm:mt-12">
             <button
-              className="px-6 py-3 cursor-pointer bg-teal-600 hover:bg-teal-500 rounded-lg text-lg font-semibold shadow-lg transition"
+              className="px-6 py-3 cursor-pointer bg-teal-600 hover:bg-teal-500 rounded-lg font-semibold shadow-lg transition text-base sm:text-lg"
               onClick={() => document.querySelector('[class*="bg-slate-950"]').scrollIntoView({ behavior: 'smooth' })}
             >
               View Project Timeline
             </button>
-            <a href="https://github.com/prodot-com/SyncSpace" target="_blank" rel="noopener noreferrer" className="px-6 py-3 text-center cursor-pointer border border-slate-400 hover:bg-slate-800 rounded-lg text-lg font-semibold transition">
+            <a href="https://github.com/prodot-com/SyncSpace" target="_blank" rel="noopener noreferrer" className="px-6 py-3 text-center cursor-pointer border border-slate-400 hover:bg-slate-800 rounded-lg font-semibold transition text-base sm:text-lg">
               See Code on GitHub
             </a>
           </div>
@@ -285,12 +285,12 @@ const App = () => {
         </section>
 
         
-        <section className="bg-slate-950/50 rounded-2xl shadow-lg shadow-teal-500/10 py-20 w-[95%] max-w-7xl mx-auto mt-24">
-          <div className="text-center mb-12">
+        <section className="bg-slate-950/50 rounded-2xl shadow-lg shadow-teal-500/10 py-16 sm:py-20 px-4 w-[95%] max-w-7xl mx-auto mt-16 sm:mt-24">
+          <div className="text-center mb-12 px-2">
             <h2 className="text-3xl sm:text-4xl font-bold text-white">
               A Focused 4-Week Development Sprint
             </h2>
-            <p className="mt-4 text-lg text-slate-400">
+            <p className="mt-4 text-base sm:text-lg text-slate-400">
               From concept to deployment, a structured plan to deliver a robust platform.
             </p>
           </div>
@@ -309,15 +309,15 @@ const App = () => {
         </section>
 
       
-        <section className="flex flex-col items-center justify-center py-20 px-4 text-center">
+        <section className="flex flex-col items-center justify-center py-16 sm:py-20 px-4 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-6">
             Ready to Revolutionize Your Workflow?
           </h2>
-          <p className="text-lg max-w-2xl mb-8 text-slate-300">
+          <p className="text-base sm:text-lg max-w-2xl mb-8 text-slate-300">
             Get started for free and discover how SyncSpace can bring your team closer, no matter where they are.
           </p>
           <button 
-            className="px-8 py-4 bg-teal-600 hover:bg-teal-500 rounded-lg text-lg font-semibold shadow-lg shadow-teal-900/50 transition-all transform hover:scale-105"
+            className="px-6 py-3 sm:px-8 sm:py-4 bg-teal-600 hover:bg-teal-500 rounded-lg font-semibold shadow-lg shadow-teal-900/50 transition-all transform hover:scale-105 text-base sm:text-lg"
             onClick={() => openModal('signUp')}
           >
             Get Started for Free
@@ -325,8 +325,8 @@ const App = () => {
         </section>
       </main>
 
-     
-      <footer className="w-full py-6 text-center text-gray-400 text-sm border-t border-slate-800">
+      
+      <footer className="w-full py-6 text-center text-gray-400 text-xs sm:text-sm border-t border-slate-800 px-4">
           <p>&copy; {new Date().getFullYear()} SyncSpace | Built with 🧡 in India</p>
       </footer>
     </div>
