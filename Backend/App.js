@@ -18,7 +18,9 @@ const frontend_url = process.env.FRONTEND_URL
 const app = express();
 
 app.use(cors({
-  origin: ["http://localhost:5173"],
+  origin: ["http://localhost:5173",
+    "https://sync-space-dun.vercel.app/"
+  ],
   credentials: true
 }));
 
@@ -27,7 +29,7 @@ app.use("/uploads", express.static("uploads"));
 
 
 app.get('/', (req, res) => {
-  res.send("SyncSpace backend running");
+  res.send("SyncSpace backend running 🚀");
 });
 
 app.use('/api/auth', authRoutes);
