@@ -18,9 +18,8 @@ import {
   Loader2, CheckSquare, LayoutGrid, X, Send, Users, Shield, Plus, MessageSquare, Tag, GripVertical
 } from "lucide-react";
 import axios from "axios";
+import {BACKEND_URL} from '../../utilities/constants.js'
 
-// --- REUSABLE UI COMPONENTS (No Changes) ---
-const API_BASE_URL = "http://localhost:9000/api";
 
 const Modal = ({ children, close, size = '2xl' }) => (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex justify-center items-center p-4 font-sans animate-fade-in">
@@ -185,13 +184,13 @@ const TasksPage = () => {
     const fetchAllData = useCallback(async () => {
         try {
             setLoading(true);
-            const userRes = await axios.get(`${API_BASE_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } });
+            const userRes = await axios.get(`${BACKEND_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } });
             setUser(userRes.data);
             
-            const wsRes = await axios.get(`${API_BASE_URL}/workspaces`, { headers: { Authorization: `Bearer ${token}` } });
+            const wsRes = await axios.get(`${BACKEND_URL}/workspaces`, { headers: { Authorization: `Bearer ${token}` } });
             setWorkspaces(wsRes.data);
 
-            const taskPromises = wsRes.data.map(ws => axios.get(`${API_BASE_URL}/tasks/${ws._id}`, { headers: { Authorization: `Bearer ${token}` } }));
+            const taskPromises = wsRes.data.map(ws => axios.get(`${BACKEND_URL}/tasks/${ws._id}`, { headers: { Authorization: `Bearer ${token}` } }));
             const taskResults = await Promise.all(taskPromises);
             
             const allTasks = taskResults.flatMap(res => res.data);
@@ -231,7 +230,7 @@ const TasksPage = () => {
         const originalTasks = [...tasks];
         setTasks(prev => prev.map(t => t._id === task._id ? { ...t, status: newStatus } : t));
         try {
-            await axios.put(`${API_BASE_URL}/tasks/${task._id}`, { status: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
+            await axios.put(`${BACKEND_URL}/tasks/${task._id}`, { status: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
         } catch {
             alert("Failed to update status");
             setTasks(originalTasks);
@@ -242,7 +241,7 @@ const TasksPage = () => {
         setModal({ type: "taskDetails", props: { task }, isLoading: false });
         setLoadingComments(true);
         try {
-            const res = await axios.get(`${API_BASE_URL}/comments/${task._id}`, { headers: { Authorization: `Bearer ${token}` } });
+            const res = await axios.get(`${BACKEND_URL}/comments/${task._id}`, { headers: { Authorization: `Bearer ${token}` } });
             setComments(res.data);
         } catch (err) {
             console.error("Failed to fetch comments", err);
@@ -253,7 +252,7 @@ const TasksPage = () => {
 
     const addComment = async (taskId, content) => {
         try {
-            const res = await axios.post(`${API_BASE_URL}/comments/${taskId}`, { content }, { headers: { Authorization: `Bearer ${token}` } });
+            const res = await axios.post(`${BACKEND_URL}/comments/${taskId}`, { content }, { headers: { Authorization: `Bearer ${token}` } });
             setComments(prev => [...prev, res.data]);
         } catch {
             alert("Failed to add comment.");
@@ -263,7 +262,7 @@ const TasksPage = () => {
     const createTask = async (taskData) => {
         setModal(prev => ({ ...prev, isLoading: true }));
         try {
-            const res = await axios.post(`${API_BASE_URL}/tasks`, { ...taskData, assignedTo: user._id }, { headers: { Authorization: `Bearer ${token}` } });
+            const res = await axios.post(`${BACKEND_URL}/tasks`, { ...taskData, assignedTo: user._id }, { headers: { Authorization: `Bearer ${token}` } });
             const newTask = res.data;
             const ws = workspaces.find(w => w._id === newTask.workspace);
             if (ws) newTask.workspace = { _id: ws._id, name: ws.name };

@@ -20,8 +20,8 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { io } from "socket.io-client";
-// import Quill from "quill";
-// import "quill/dist/quill.snow.css";
+import {BACKEND_URL } from '../../utilities/constants.js'
+import { SOCKET_URL } from "../../utilities/constants.js";
 
 
 const ModalShell = ({ children, close }) => (
@@ -404,7 +404,7 @@ const DocumentsPanel = ({ documents, onUpload, onDelete, loading, onOpenEditor, 
                                     <div className="text-sm text-slate-400 text-center col-span-1">by {doc.uploadedBy?.name || 'Unknown'}</div>
                                     <div className="text-sm text-slate-500 text-center col-span-1">{new Date(doc.createdAt).toLocaleDateString()}</div>
                                     <div className="flex justify-end items-center gap-4">
-                                        <a href={`http://localhost:9000${doc.fileUrl}`} target="_blank" rel="noreferrer" className="text-teal-400 hover:text-teal-300 p-2 rounded-full hover:bg-slate-700"><Download size={16} /></a>
+                                        <a href={`${SOCKET_URL}${doc.fileUrl}`} target="_blank" rel="noreferrer" className="text-teal-400 hover:text-teal-300 p-2 rounded-full hover:bg-slate-700"><Download size={16} /></a>
                                         {isAdmin && (<button onClick={() => onDelete(doc._id)} className="text-red-500 hover:text-red-400 p-2 rounded-full hover:bg-slate-700"><Trash2 size={16} /></button>)}
                                     </div>
                                 </div>
@@ -575,14 +575,13 @@ const WorkspacePage = () => {
     const [socket, setSocket] = useState(null);
 
     const token = localStorage.getItem("token");
-    const API_BASE_URL = "http://localhost:9000/api";
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
     const isAdmin = useMemo(() => currentUser?._id === workspace?.createdBy?._id, [currentUser, workspace]);
 
     // --- Data Fetching ---
-    const fetchWorkspaceAndMembers = async () => { try { const res = await axios.get(`${API_BASE_URL}/workspaces/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }); setWorkspace(res.data); } catch (err) { if (err.response?.status === 401 || err.response?.status === 404) navigate("/"); } };
+    const fetchWorkspaceAndMembers = async () => { try { const res = await axios.get(`${BACKEND_URL}/workspaces/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }); setWorkspace(res.data); } catch (err) { if (err.response?.status === 401 || err.response?.status === 404) navigate("/"); } };
     
     useEffect(() => {
         const quillCssId = 'quill-css';
@@ -605,12 +604,12 @@ const WorkspacePage = () => {
         }
     }, []);
 
-    useEffect(() => { if (!token) { navigate("/"); return; } const fetchAll = async () => { setLoading({ page: true, tasks: true, docs: true }); try { const [wsRes, tasksRes, docsRes, userRes, chatRes] = await Promise.all([axios.get(`${API_BASE_URL}/workspaces/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }), axios.get(`${API_BASE_URL}/tasks/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }), axios.get(`${API_BASE_URL}/documents/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }), axios.get(`${API_BASE_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } }), axios.get(`${API_BASE_URL}/chat/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } })]); setWorkspace(wsRes.data); setTasks(tasksRes.data || []); setDocuments(docsRes.data || []); setCurrentUser(userRes.data); setChatMessages(chatRes.data || []); } catch (err) { navigate("/"); } finally { setLoading({ page: false, tasks: false, docs: false }); } }; fetchAll(); }, [workspaceId, token, navigate]);
+    useEffect(() => { if (!token) { navigate("/"); return; } const fetchAll = async () => { setLoading({ page: true, tasks: true, docs: true }); try { const [wsRes, tasksRes, docsRes, userRes, chatRes] = await Promise.all([axios.get(`${BACKEND_URL}/workspaces/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }), axios.get(`${BACKEND_URL}/tasks/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }), axios.get(`${BACKEND_URL}/documents/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }), axios.get(`${BACKEND_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } }), axios.get(`${BACKEND_URL}/chat/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } })]); setWorkspace(wsRes.data); setTasks(tasksRes.data || []); setDocuments(docsRes.data || []); setCurrentUser(userRes.data); setChatMessages(chatRes.data || []); } catch (err) { navigate("/"); } finally { setLoading({ page: false, tasks: false, docs: false }); } }; fetchAll(); }, [workspaceId, token, navigate]);
 
     // --- Socket Connection & Event Handlers ---
     useEffect(() => {
         if (!token) return;
-        const newSocket = io("http://localhost:9000", { auth: { token } });
+        const newSocket = io(`${SOCKET_URL}`, { auth: { token } });
         setSocket(newSocket);
 
         newSocket.on('connect', () => {
@@ -664,17 +663,17 @@ const WorkspacePage = () => {
     useEffect(() => { if (!tasks) return; setColumns({ "To Do": { name: "To Do", items: tasks.filter(t => t.status === "To Do") }, "In Progress": { name: "In Progress", items: tasks.filter(t => t.status === "In Progress") }, "Completed": { name: "Completed", items: tasks.filter(t => t.status === "Completed") } }); }, [tasks]);
 
     // --- API Actions ---
-    const createTask = async (data) => { try { const res = await axios.post(`${API_BASE_URL}/tasks`, data, { headers: { Authorization: `Bearer ${token}` } }); if (socket) socket.emit("taskUpdated", res.data); closeModal(); } catch (err) { alert("Failed to create task"); console.log(err) } };
-    const updateTask = async (taskId, patch) => { try { const res = await axios.put(`${API_BASE_URL}/tasks/${taskId}`, patch, { headers: { Authorization: `Bearer ${token}` } }); if (socket) socket.emit("taskUpdated", res.data); closeModal(); } catch (err) { alert("Failed to update task"); } };
-    const deleteTask = (taskId) => { openModal("confirm", { title: "Delete Task?", message: "Are you sure you want to permanently delete this task?", onConfirm: async () => { try { await axios.delete(`${API_BASE_URL}/tasks/${taskId}`, { headers: { Authorization: `Bearer ${token}` } }); if (socket) socket.emit("taskUpdated", { _id: taskId, deleted: true, workspace: workspaceId }); closeModal(); } catch (err) { alert("Failed to delete task"); } } }); };
-    const inviteMember = async (email) => { try { await axios.post(`${API_BASE_URL}/workspaces/${workspaceId}/members`, { email }, { headers: { Authorization: `Bearer ${token}` } }); fetchWorkspaceAndMembers(); } catch (err) { alert(err.response?.data?.message || "Failed to invite member."); } };
-    const removeMember = (userId) => { openModal("confirm", { title: "Remove Member?", message: "Are you sure you want to remove this member from the workspace?", onConfirm: async () => { try { closeModal(); await axios.delete(`${API_BASE_URL}/workspaces/${workspaceId}/members/${userId}`, { headers: { Authorization: `Bearer ${token}` } }); setWorkspace(prev => ({ ...prev, members: prev.members.filter(m => m._id !== userId) })); } catch (err) { alert("Failed to remove member."); } } }); };
-    const updateWorkspace = async (patch) => { try { const res = await axios.put(`${API_BASE_URL}/workspaces/${workspaceId}`, patch, { headers: { Authorization: `Bearer ${token}` } }); setWorkspace(res.data); closeModal(); } catch (err) { alert("Failed to update workspace."); } };
-    const uploadDocument = async (file) => { const formData = new FormData(); formData.append("file", file); try { const res = await axios.post(`${API_BASE_URL}/documents/${workspaceId}`, formData, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" } }); if (socket) socket.emit("docUpdated", { doc: res.data, workspaceId }); } catch (err) { alert("File upload failed"); } };
-    const createTextDocument = async (title) => { try { const res = await axios.post(`${API_BASE_URL}/documents/text`, { title, workspaceId }, { headers: { Authorization: `Bearer ${token}` } }); if (socket) socket.emit("docUpdated", { doc: res.data, workspaceId }); setActiveDocument(res.data._id); closeModal(); } catch (err) { alert("Failed to create document."); } };
-    const deleteDocument = (docId) => { openModal("confirm", { title: "Delete Document?", message: "Are you sure you want to permanently delete this file?", onConfirm: async () => { try { await axios.delete(`${API_BASE_URL}/documents/${docId}`, { headers: { Authorization: `Bearer ${token}` } }); if (socket) socket.emit("docUpdated", { docId: docId, deleted: true, workspaceId }); closeModal(); } catch (err) { alert("Failed to delete document"); } } }); };
-    const deleteWorkspace = () => { openModal("confirm", { title: "Delete Workspace?", message: "This action is irreversible and will delete all associated tasks, documents, and chat messages.", onConfirm: async () => { try { await axios.delete(`${API_BASE_URL}/workspaces/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }); navigate(`/dashboard/${currentUser?._id}`); } catch (err) { alert("Failed to delete workspace."); } } }); };
-    const handleSendHelp = async (message) => { try { await axios.post(`${API_BASE_URL}/help/${workspaceId}`, { message }, { headers: { Authorization: `Bearer ${token}` } }); closeModal(); openModal("success", { title: "Request Sent", message: "Your help request has been sent to the workspace admin." }); } catch (err) { alert("Failed to send help request."); } };
+    const createTask = async (data) => { try { const res = await axios.post(`${BACKEND_URL}/tasks`, data, { headers: { Authorization: `Bearer ${token}` } }); if (socket) socket.emit("taskUpdated", res.data); closeModal(); } catch (err) { alert("Failed to create task"); console.log(err) } };
+    const updateTask = async (taskId, patch) => { try { const res = await axios.put(`${BACKEND_URL}/tasks/${taskId}`, patch, { headers: { Authorization: `Bearer ${token}` } }); if (socket) socket.emit("taskUpdated", res.data); closeModal(); } catch (err) { alert("Failed to update task"); } };
+    const deleteTask = (taskId) => { openModal("confirm", { title: "Delete Task?", message: "Are you sure you want to permanently delete this task?", onConfirm: async () => { try { await axios.delete(`${BACKEND_URL}/tasks/${taskId}`, { headers: { Authorization: `Bearer ${token}` } }); if (socket) socket.emit("taskUpdated", { _id: taskId, deleted: true, workspace: workspaceId }); closeModal(); } catch (err) { alert("Failed to delete task"); } } }); };
+    const inviteMember = async (email) => { try { await axios.post(`${BACKEND_URL}/workspaces/${workspaceId}/members`, { email }, { headers: { Authorization: `Bearer ${token}` } }); fetchWorkspaceAndMembers(); } catch (err) { alert(err.response?.data?.message || "Failed to invite member."); } };
+    const removeMember = (userId) => { openModal("confirm", { title: "Remove Member?", message: "Are you sure you want to remove this member from the workspace?", onConfirm: async () => { try { closeModal(); await axios.delete(`${BACKEND_URL}/workspaces/${workspaceId}/members/${userId}`, { headers: { Authorization: `Bearer ${token}` } }); setWorkspace(prev => ({ ...prev, members: prev.members.filter(m => m._id !== userId) })); } catch (err) { alert("Failed to remove member."); } } }); };
+    const updateWorkspace = async (patch) => { try { const res = await axios.put(`${BACKEND_URL}/workspaces/${workspaceId}`, patch, { headers: { Authorization: `Bearer ${token}` } }); setWorkspace(res.data); closeModal(); } catch (err) { alert("Failed to update workspace."); } };
+    const uploadDocument = async (file) => { const formData = new FormData(); formData.append("file", file); try { const res = await axios.post(`${BACKEND_URL}/documents/${workspaceId}`, formData, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" } }); if (socket) socket.emit("docUpdated", { doc: res.data, workspaceId }); } catch (err) { alert("File upload failed"); } };
+    const createTextDocument = async (title) => { try { const res = await axios.post(`${BACKEND_URL}/documents/text`, { title, workspaceId }, { headers: { Authorization: `Bearer ${token}` } }); if (socket) socket.emit("docUpdated", { doc: res.data, workspaceId }); setActiveDocument(res.data._id); closeModal(); } catch (err) { alert("Failed to create document."); } };
+    const deleteDocument = (docId) => { openModal("confirm", { title: "Delete Document?", message: "Are you sure you want to permanently delete this file?", onConfirm: async () => { try { await axios.delete(`${BACKEND_URL}/documents/${docId}`, { headers: { Authorization: `Bearer ${token}` } }); if (socket) socket.emit("docUpdated", { docId: docId, deleted: true, workspaceId }); closeModal(); } catch (err) { alert("Failed to delete document"); } } }); };
+    const deleteWorkspace = () => { openModal("confirm", { title: "Delete Workspace?", message: "This action is irreversible and will delete all associated tasks, documents, and chat messages.", onConfirm: async () => { try { await axios.delete(`${BACKEND_URL}/workspaces/${workspaceId}`, { headers: { Authorization: `Bearer ${token}` } }); navigate(`/dashboard/${currentUser?._id}`); } catch (err) { alert("Failed to delete workspace."); } } }); };
+    const handleSendHelp = async (message) => { try { await axios.post(`${BACKEND_URL}/help/${workspaceId}`, { message }, { headers: { Authorization: `Bearer ${token}` } }); closeModal(); openModal("success", { title: "Request Sent", message: "Your help request has been sent to the workspace admin." }); } catch (err) { alert("Failed to send help request."); } };
     const findContainer = (id) => { if (columns && columns[id]) return id; return columns ? Object.keys(columns).find((key) => columns[key].items.find((item) => item._id === id)) : null; };
     const handleDragEnd = (event) => { const { active, over } = event; if (!over) return; const activeId = active.id; const overId = over.id; const activeContainer = findContainer(activeId); const overContainer = findContainer(overId) || (columns[overId] ? overId : null); if (!activeContainer || !overContainer || active.id === over.id) return; const originalTasks = [...tasks]; if (activeContainer === overContainer) { const taskList = columns[activeContainer].items; const oldIndex = taskList.findIndex(t => t._id === activeId); const newIndex = taskList.findIndex(t => t._id === overId); if (oldIndex === -1 || newIndex === -1) return; const reorderedTasksInColumn = arrayMove(taskList, oldIndex, newIndex); const otherTasks = tasks.filter(t => t.status !== activeContainer); setTasks([...otherTasks, ...reorderedTasksInColumn]); } else { const updatedTask = tasks.find(t => t._id === activeId); updatedTask.status = overContainer; updateTask(activeId, { status: overContainer }); } };
     const openModal = (type, props = {}) => setModal({ type, props });

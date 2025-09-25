@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from "react";
-// No need for react-router-dom in a single-file context, but keeping hooks for logic preservation
 import { useNavigate } from "react-router-dom";
 import { LayoutGrid, FilePenLine, MessageSquare, Zap, X, LineSquiggle } from "lucide-react";
 import axios from "axios";
+import { BACKEND_URL } from "../../utilities/constants.js";
 
-// In a real app, this would be in a .env file
-const BACKEND_URL = "http://localhost:9000/api";
 
-// Reusable Input Field Component
 const FormInput = ({ label, name, type = "text", placeholder, value, onChange, required = true }) => (
   <div>
     <label htmlFor={name} className="block text-sm font-medium text-slate-300 mb-1">
@@ -26,7 +23,7 @@ const FormInput = ({ label, name, type = "text", placeholder, value, onChange, r
   </div>
 );
 
-// SignUp Form Component
+
 const SignUpForm = ({ signUpData, handleSignUpChange, handleSignUp, setModalContent, alert }) => (
   <div>
     <h2 className="text-3xl font-bold text-center text-white mb-2">Get Started with SyncSpace</h2>
@@ -62,7 +59,7 @@ const SignUpForm = ({ signUpData, handleSignUpChange, handleSignUp, setModalCont
   </div>
 );
 
-// SignIn Form Component
+
 const SignInForm = ({ signInData, handleSignInChange, handleSignIn, setModalContent, alert }) => (
   <div>
     <h2 className="text-3xl font-bold text-center text-white mb-2">Welcome Back</h2>
@@ -84,7 +81,7 @@ const SignInForm = ({ signInData, handleSignInChange, handleSignIn, setModalCont
   </div>
 );
 
-// Modal Component
+
 const AuthModal = ({ closeModal, modalContent, ...props }) => (
   <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex justify-center items-center p-4 font-sans animate-fade-in">
     <div className="bg-slate-800 rounded-2xl shadow-2xl shadow-black/50 p-8 w-full max-w-md relative animate-slide-up">
@@ -96,7 +93,7 @@ const AuthModal = ({ closeModal, modalContent, ...props }) => (
   </div>
 );
 
-// Header Component
+
 const Header = ({ onSignIn, onSignUp }) => (
     <header className="fixed top-5 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl bg-slate-800/60 flex justify-between items-center px-6 sm:px-10 py-4 rounded-2xl z-40 backdrop-blur-md shadow-2xl shadow-black/30 border border-slate-700">
         <h1 className=" text-2xl sm:text-3xl font-bold text-white cursor-pointer" onClick={() => window.location.reload()}>
@@ -113,7 +110,7 @@ const Header = ({ onSignIn, onSignUp }) => (
     </header>
 );
 
-// Feature Item Component
+
 const FeatureItem = ({ icon, title, children }) => (
     <div className="flex items-start gap-4 group">
         <div className="p-3 rounded-full bg-teal-500/10 group-hover:bg-teal-500/20 transition-all duration-300 group-hover:scale-110">
@@ -155,7 +152,7 @@ const App = () => {
       setTimeout(() => {
         closeModal();
         setAlert(null);
-        setModalContent('signIn'); // Switch to sign-in after successful sign-up
+        setModalContent('signIn'); 
         setIsModalOpen(true);
       }, 1500);
     } catch (error) {
@@ -182,14 +179,14 @@ const App = () => {
   const openModal = (content) => {
     setModalContent(content);
     setIsModalOpen(true);
-    setAlert(null); // Clear previous alerts
+    setAlert(null); 
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
   };
 
-  // Effect to handle 'Escape' key press to close modal
+ 
   useEffect(() => {
     const handleEsc = (event) => {
        if (event.key === 'Escape') {
@@ -218,7 +215,7 @@ const App = () => {
 
       <Header onSignIn={() => openModal('signIn')} onSignUp={() => openModal('signUp')} />
 
-      {/* Hero Section */}
+      
       <main className="w-full pt-40 sm:pt-48 flex flex-col items-center">
         <section className="min-h-[calc(100vh-12rem)] w-full relative flex flex-col justify-center items-center px-4 sm:px-6">
           <div
@@ -248,7 +245,7 @@ const App = () => {
           </div>
         </section>
 
-        {/* Features Section */}
+        
         <section id="features" className="p-6 sm:p-10 w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="order-2 lg:order-1">
             <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white">
@@ -287,7 +284,7 @@ const App = () => {
           </div>
         </section>
 
-        {/* Timeline Section */}
+        
         <section className="bg-slate-950/50 rounded-2xl shadow-lg shadow-teal-500/10 py-20 w-[95%] max-w-7xl mx-auto mt-24">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-white">
@@ -311,7 +308,7 @@ const App = () => {
           </div>
         </section>
 
-        {/* Final CTA */}
+      
         <section className="flex flex-col items-center justify-center py-20 px-4 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-6">
             Ready to Revolutionize Your Workflow?
@@ -328,7 +325,7 @@ const App = () => {
         </section>
       </main>
 
-      {/* Footer */}
+     
       <footer className="w-full py-6 text-center text-gray-400 text-sm border-t border-slate-800">
           <p>&copy; {new Date().getFullYear()} SyncSpace | Built with 🧡 in India</p>
       </footer>

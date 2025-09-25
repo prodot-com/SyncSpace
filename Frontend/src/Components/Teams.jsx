@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Loader2, Users, Briefcase, CheckSquare, Shield, Trash2, Edit3, X, Plus, UserPlus, LayoutGrid, Bell, LogOut, Lock } from 'lucide-react';
 import axios from 'axios';
+import { BACKEND_URL } from '../../utilities/constants';
 
 // --- Reusable Modal Components ---
 
@@ -210,12 +211,12 @@ const TeamsPage = () => {
     const [notificationsOpen, setNotificationsOpen] = useState(false);
 
     const token = localStorage.getItem("token");
-    const API_BASE_URL = "http://localhost:9000/api";
+    
     const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
 
     const fetchTeams = useCallback(async () => {
         try {
-            const teamsRes = await axios.get(`${API_BASE_URL}/teams`, { headers: { Authorization: `Bearer ${token}` } });
+            const teamsRes = await axios.get(`${BACKEND_URL}/teams`, { headers: { Authorization: `Bearer ${token}` } });
             setTeams(teamsRes.data);
         } catch (err) {
             setError("Failed to load teams.");
@@ -226,16 +227,16 @@ const TeamsPage = () => {
         if (!token) { navigate("/"); return; }
         const fetchInitialData = async () => {
             try {
-                const userRes = await axios.get(`${API_BASE_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } });
+                const userRes = await axios.get(`${BACKEND_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } });
                 setCurrentUser(userRes.data);
 
                 const promises = [
-                    axios.get(`${API_BASE_URL}/teams`, { headers: { Authorization: `Bearer ${token}` } }),
-                    axios.get(`${API_BASE_URL}/notifications`, { headers: { Authorization: `Bearer ${token}` } })
+                    axios.get(`${BACKEND_URL}/teams`, { headers: { Authorization: `Bearer ${token}` } }),
+                    axios.get(`${BACKEND_URL}/notifications`, { headers: { Authorization: `Bearer ${token}` } })
                 ];
 
                 if (userRes.data.role === 'Admin') {
-                    promises.push(axios.get(`${API_BASE_URL}/admin/users`, { headers: { Authorization: `Bearer ${token}` } }));
+                    promises.push(axios.get(`${BACKEND_URL}/admin/users`, { headers: { Authorization: `Bearer ${token}` } }));
                 }
 
                 const [teamsRes, notificationsRes, allUsersRes] = await Promise.all(promises);
@@ -259,14 +260,14 @@ const TeamsPage = () => {
     const openModal = (type, props) => setModal({ isOpen: true, type, props });
     const closeModal = () => setModal({ isOpen: false, type: null, props: {} });
     
-    const handleCreateTeam = async (data) => { try { await axios.post(`${API_BASE_URL}/teams`, data, { headers: { Authorization: `Bearer ${token}` } }); await fetchTeams(); closeModal(); } catch { alert("Failed to create team."); }};
-    const handleUpdateTeam = async (id, data) => { try { await axios.put(`${API_BASE_URL}/teams/${id}`, data, { headers: { Authorization: `Bearer ${token}` } }); await fetchTeams(); closeModal(); } catch { alert("Failed to update team."); }};
-    const handleDeleteTeam = (id) => { openModal('confirm', { title: "Delete Team?", message: "Are you sure? This action cannot be undone.", onConfirm: async () => { try { await axios.delete(`${API_BASE_URL}/teams/${id}`, { headers: { Authorization: `Bearer ${token}` } }); await fetchTeams(); closeModal(); } catch { alert("Failed to delete team."); } } }); };
-    const handleAddMember = async (teamId, userId) => { try { await axios.post(`${API_BASE_URL}/teams/${teamId}/members`, { userId }, { headers: { Authorization: `Bearer ${token}` } }); await fetchTeams(); const updatedTeam = await axios.get(`${API_BASE_URL}/teams/${teamId}`, { headers: { Authorization: `Bearer ${token}` } }); setModal({ isOpen: true, type: 'manageMembers', props: { team: updatedTeam.data } }); } catch { alert("Failed to add member."); }};
-    const handleRemoveMember = (teamId, userId) => { openModal('confirm', { title: "Remove Member?", message: "Are you sure you want to remove this member from the team?", onConfirm: async () => { try { await axios.delete(`${API_BASE_URL}/teams/${teamId}/members/${userId}`, { headers: { Authorization: `Bearer ${token}` } }); await fetchTeams(); closeModal(); } catch { alert("Failed to remove member."); } } }); };
-    const handleMarkAsRead = async (id) => { try { await axios.put(`${API_BASE_URL}/notifications/${id}/read`, {}, { headers: { Authorization: `Bearer ${token}` } }); setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n)); } catch (err) { console.error("Failed to mark as read"); }};
-    const handleUpdateProfile = async (formData) => { try { const res = await axios.put(`${API_BASE_URL}/users/me`, formData, { headers: { Authorization: `Bearer ${token}` } }); setCurrentUser(res.data); closeModal(); } catch { alert("Error updating profile."); }};
-    const handleChangePassword = async (form) => { try { await axios.put(`${API_BASE_URL}/users/me/password`, form, { headers: { Authorization: `Bearer ${token}` } }); closeModal(); } catch { alert("Error updating password."); }};
+    const handleCreateTeam = async (data) => { try { await axios.post(`${BACKEND_URL}/teams`, data, { headers: { Authorization: `Bearer ${token}` } }); await fetchTeams(); closeModal(); } catch { alert("Failed to create team."); }};
+    const handleUpdateTeam = async (id, data) => { try { await axios.put(`${BACKEND_URL}/teams/${id}`, data, { headers: { Authorization: `Bearer ${token}` } }); await fetchTeams(); closeModal(); } catch { alert("Failed to update team."); }};
+    const handleDeleteTeam = (id) => { openModal('confirm', { title: "Delete Team?", message: "Are you sure? This action cannot be undone.", onConfirm: async () => { try { await axios.delete(`${BACKEND_URL}/teams/${id}`, { headers: { Authorization: `Bearer ${token}` } }); await fetchTeams(); closeModal(); } catch { alert("Failed to delete team."); } } }); };
+    const handleAddMember = async (teamId, userId) => { try { await axios.post(`${BACKEND_URL}/teams/${teamId}/members`, { userId }, { headers: { Authorization: `Bearer ${token}` } }); await fetchTeams(); const updatedTeam = await axios.get(`${BACKEND_URL}/teams/${teamId}`, { headers: { Authorization: `Bearer ${token}` } }); setModal({ isOpen: true, type: 'manageMembers', props: { team: updatedTeam.data } }); } catch { alert("Failed to add member."); }};
+    const handleRemoveMember = (teamId, userId) => { openModal('confirm', { title: "Remove Member?", message: "Are you sure you want to remove this member from the team?", onConfirm: async () => { try { await axios.delete(`${BACKEND_URL}/teams/${teamId}/members/${userId}`, { headers: { Authorization: `Bearer ${token}` } }); await fetchTeams(); closeModal(); } catch { alert("Failed to remove member."); } } }); };
+    const handleMarkAsRead = async (id) => { try { await axios.put(`${BACKEND_URL}/notifications/${id}/read`, {}, { headers: { Authorization: `Bearer ${token}` } }); setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n)); } catch (err) { console.error("Failed to mark as read"); }};
+    const handleUpdateProfile = async (formData) => { try { const res = await axios.put(`${BACKEND_URL}/users/me`, formData, { headers: { Authorization: `Bearer ${token}` } }); setCurrentUser(res.data); closeModal(); } catch { alert("Error updating profile."); }};
+    const handleChangePassword = async (form) => { try { await axios.put(`${BACKEND_URL}/users/me/password`, form, { headers: { Authorization: `Bearer ${token}` } }); closeModal(); } catch { alert("Error updating password."); }};
 
     if (loading) return <div className="min-h-screen flex justify-center items-center bg-slate-900"><Loader2 size={40} className="animate-spin text-teal-500" /></div>;
     if (error) return <div className="min-h-screen flex flex-col justify-center items-center bg-slate-900 text-white"><h2 className="text-2xl text-red-500">{error}</h2><Link to="/dashboard" className="mt-4 text-teal-400 hover:underline">Return to Dashboard</Link></div>;
