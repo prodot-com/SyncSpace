@@ -26,7 +26,7 @@ const NotificationsPanel = ({ notifications, onMarkAsRead, navigate }) => {
                     <div 
                         key={notif._id} 
                         className={`px-4 py-3 border-b border-slate-600 last:border-b-0 hover:bg-slate-600 ${!notif.read ? 'bg-teal-500/10' : ''}`}
-                        onClick={() => { onMarkAsRead(notif._id); navigate(notif.link || '#'); }}
+                        onClick={() => { onMarkAsRead(notif._id); }}
                     >
                         <p className="text-sm text-slate-200">{notif.message}</p>
                         <p className="text-xs text-slate-400 mt-1">{new Date(notif.createdAt).toLocaleString()}</p>
