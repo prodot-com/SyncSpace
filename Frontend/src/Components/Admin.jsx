@@ -441,7 +441,9 @@ const BottomNav = ({ user }) => {
                 <Link 
                     key={item.label}
                     to={item.path} 
-                    className="flex flex-col items-center justify-center gap-1 w-full py-1 rounded-md transition-colors text-slate-400 hover:text-teal-400"
+                    className={`flex flex-col items-center justify-center gap-1 w-full py-1 rounded-md transition-colors text-slate-400 hover:text-teal-400
+                        ${item.label === 'Admin'? "bg-slate-700": ""}
+                        `}
                 >
                     <item.icon size={20} />
                     <span className="text-xs">{item.label}</span>
