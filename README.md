@@ -4,6 +4,9 @@
 
 SyncSpace is a powerful and intuitive web application designed to streamline team collaboration, task management, and administrative oversight. It provides a centralized platform for creating and managing teams, assigning and tracking tasks, and ensuring seamless communication through real-time notifications.
 
+## Live Link
+https://sync-space-dun.vercel.app/
+
 ## ✨ Features
 
 * **User Authentication & Authorization:** Secure login and registration with role-based access control (Admin, Member).
